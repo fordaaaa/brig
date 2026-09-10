@@ -26,6 +26,16 @@ Storage: one SQLite WAL file per repo. No embeddings, no graph DB, no telemetry.
 - Public-repo hygiene: no secrets, tokens, or personal paths in commits.
 - Label README claims honestly: measured vs estimated.
 
+## Swarm kit
+
+- Skills: `skills/investigator/SKILL.md` (read-only index explorer),
+  `skills/builder/SKILL.md` (executes a plan, 1–2 files/step),
+  `skills/reviewer/SKILL.md` (verifies diff vs plan).
+- Plans: `plans/<task>.md` per `plans/README.md` template (goal, non-goals,
+  files in scope, verification cmd, DoD).
+- Memory: `.local/memory.md` learning log (gitignored, marker-delimited;
+  never auto-promoted to AGENTS.md).
+
 ## Repo map
 
 - `src/brig/db.py` — SQLite WAL storage, incremental upserts.

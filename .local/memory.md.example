@@ -1,0 +1,11 @@
+<!-- brig:learn:start -->
+# brig learning log (example — `.local/` is gitignored, do not commit)
+
+> Append-only. Entries record what failed, what worked, and the rule.
+> Never auto-promoted to AGENTS.md — promotion is a deliberate human edit.
+
+- failed `pytest` with no venv -> worked `uv run pytest` => rule: always run tests via `uv run`
+- failed whole-file read for symbol lookup -> worked index `search_symbols` + byte span => rule: retrieve exact spans, not files
+- failed <describe an example failure> -> worked <what fixed it> => rule: <short rule>
+
+<!-- brig:learn:end -->
