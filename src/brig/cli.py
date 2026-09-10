@@ -87,13 +87,17 @@ def _index_dir(base: Path) -> Path:
 
 
 def _available_slugs(base: Path) -> list[str]:
+    from brig import db
+
     store = _index_dir(base)
     if not store.is_dir():
         return []
     slugs = []
     for p in store.glob("*.db"):
         if p.is_file() and p.name.endswith(".db"):
-            slugs.append(p.name[: -len(".db")])
+            slug = p.name[: -len(".db")]
+            if db.is_valid_slug(slug):
+                slugs.append(slug)
     return sorted(slugs)
 
 

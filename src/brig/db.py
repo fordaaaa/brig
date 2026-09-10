@@ -89,8 +89,23 @@ def default_slug_for_repo(repo_root: Path | str) -> str:
     return Path(repo_root).resolve().name or "index"
 
 
+def is_valid_slug(slug: str) -> bool:
+    """True if slug is safe to use as an index filename stem.
+
+    Leading-dot slugs are rejected: they are hidden files on disk and the
+    only known producers are past slug bugs (``""`` -> ``.db``).
+    """
+    return (
+        bool(slug)
+        and slug not in (".", "..")
+        and "/" not in slug
+        and "\\" not in slug
+        and not slug.startswith(".")
+    )
+
+
 def open_or_create(slug: str, root: Path | str | None = None) -> sqlite3.Connection:
-    if not slug or slug in (".", "..") or "/" in slug or "\\" in slug:
+    if not is_valid_slug(slug):
         raise ValueError(f"invalid slug {slug!r}; pass a plain name via --slug.")
     store = _store_root(root)
     store.mkdir(parents=True, exist_ok=True)
