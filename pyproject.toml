@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "brig"
+version = "0.1.0"
+description = "Deterministic code-graph index + minimal agent swarm kit"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [{ name = "brig contributors" }]
+dependencies = [
+  "tree-sitter>=0.25",
+  "tree-sitter-python>=0.25",
+  "tree-sitter-javascript>=0.25",
+  "tree-sitter-typescript>=0.23",
+]
+
+[project.scripts]
+brig = "brig.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/brig"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
