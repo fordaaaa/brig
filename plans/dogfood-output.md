@@ -1,6 +1,6 @@
 # Dogfood output — indexing brig itself (2026-09-10)
 
-Commands run verbatim from the repo root (`C:\Users\user\Documents\GitHub\brig`).
+Commands run verbatim from the repo root.
 Note: `search`/`outline`/`refs` initially failed with
 `multiple indexed repos ['', '.db', 'brig']; require --slug` due to legacy
 dotfiles in `~/.brig/index` (see `plans/fix-stale-dot-slugs.md`). Outputs below
