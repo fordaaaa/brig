@@ -90,7 +90,11 @@ def _available_slugs(base: Path) -> list[str]:
     store = _index_dir(base)
     if not store.is_dir():
         return []
-    return sorted(p.stem for p in store.glob("*.db") if p.is_file())
+    slugs = []
+    for p in store.glob("*.db"):
+        if p.is_file() and p.name.endswith(".db"):
+            slugs.append(p.name[: -len(".db")])
+    return sorted(slugs)
 
 
 def _fail(message: str) -> int:
@@ -160,7 +164,7 @@ def _cmd_index(args: argparse.Namespace) -> int:
     if not repo.is_dir():
         return _fail(f"not a directory: {args.path}")
     base = _store_base(args.root)
-    slug = args.slug or repo.name
+    slug = args.slug or db.default_slug_for_repo(repo)
     try:
         stats = db.index_repo(repo, slug=slug, index_root=base, extract_fn=_safe_extract)
     except Exception as exc:

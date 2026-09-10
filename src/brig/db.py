@@ -84,7 +84,14 @@ def norm_path(path: Path | str) -> str:
     return Path(path).as_posix()
 
 
+def default_slug_for_repo(repo_root: Path | str) -> str:
+    """Slug default: resolved directory name (so ``.`` yields e.g. ``brig``)."""
+    return Path(repo_root).resolve().name or "index"
+
+
 def open_or_create(slug: str, root: Path | str | None = None) -> sqlite3.Connection:
+    if not slug or slug in (".", "..") or "/" in slug or "\\" in slug:
+        raise ValueError(f"invalid slug {slug!r}; pass a plain name via --slug.")
     store = _store_root(root)
     store.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(store / f"{slug}.db")
@@ -297,7 +304,7 @@ def index_repo(
 
     own_conn = conn is None
     if own_conn:
-        slug = slug or repo.name
+        slug = slug or default_slug_for_repo(repo)
         conn = open_or_create(slug, root=index_root)
     assert conn is not None
 
