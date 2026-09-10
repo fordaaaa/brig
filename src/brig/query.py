@@ -299,3 +299,246 @@ def check_refs(
         "scan_counts": counts,
         "_meta": _meta(conn, freshness, counts),
     }
+
+
+# --- call edges (EXTRACTED vs INFERRED) ---
+
+
+def add_edge(
+    conn: sqlite3.Connection,
+    src_id: int,
+    dst_id: int,
+    kind: str = "calls",
+    confidence: str = "INFERRED",
+) -> int:
+    """Minimal additive edges-table insert helper (db.py exposes none)."""
+    cur = conn.execute(
+        "INSERT INTO edges (src_id, dst_id, kind, confidence) VALUES (?, ?, ?, ?);",
+        (src_id, dst_id, kind, confidence),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def infer_call_edges(
+    conn: sqlite3.Connection, repo_root: Path | str | None = None
+) -> dict:
+    """Pass-2: symbol bodies mentioning another symbol's short name.
+
+    Rebuilds all ``kind='calls'`` / ``confidence='INFERRED'`` edges
+    (idempotent: previous INFERRED calls edges are cleared first).
+    EXTRACTED edges, if any, are left untouched.
+    """
+    counts = _scan_counts(conn)
+    syms = conn.execute(
+        "SELECT id, path, qualname, start_byte, end_byte FROM symbols;"
+    ).fetchall()
+    by_short: dict[str, list[tuple[int, str]]] = {}
+    for sid, sym_path, qualname, _sb, _eb in syms:
+        by_short.setdefault(qualname.rsplit(".", 1)[-1], []).append((sid, sym_path))
+    conn.execute("DELETE FROM edges WHERE kind = 'calls' AND confidence = 'INFERRED';")
+    spans = [(sid, sym_path, sb, eb) for sid, sym_path, _qn, sb, eb in syms]
+    cache: dict[str, bytes | None] = {}
+    seen: set[tuple[int, int]] = set()
+    added = 0
+    for sid, sym_path, _qualname, sb, eb in syms:
+        if sym_path not in cache:
+            try:
+                cache[sym_path] = _disk_path(sym_path, repo_root).read_bytes()
+            except OSError:
+                cache[sym_path] = None
+        data = cache[sym_path]
+        if not data or not (0 <= sb <= eb <= len(data)):
+            continue
+        # A symbol's "own" code excludes nested symbols' spans (e.g. a
+        # class body minus its methods); otherwise a method's calls would
+        # also be attributed to every enclosing symbol.
+        inner = sorted(
+            (osb, oeb)
+            for oid, opath, osb, oeb in spans
+            if oid != sid
+            and opath == sym_path
+            and osb >= sb
+            and oeb <= eb
+            and (osb, oeb) != (sb, eb)
+        )
+        parts: list[bytes] = []
+        cursor = sb
+        for osb, oeb in inner:
+            if osb > cursor:
+                parts.append(data[cursor:osb])
+            cursor = max(cursor, oeb)
+        parts.append(data[cursor:eb])
+        own = b"\n".join(parts).decode("utf-8", errors="replace")
+        for ident in set(_IDENT_RE.findall(own)):
+            for did, _dpath in by_short.get(ident, []):
+                if did == sid or (sid, did) in seen:
+                    continue
+                seen.add((sid, did))
+                conn.execute(
+                    "INSERT INTO edges (src_id, dst_id, kind, confidence)"
+                    " VALUES (?, ?, 'calls', 'INFERRED');",
+                    (sid, did),
+                )
+                added += 1
+    conn.commit()
+    return {
+        "edges_added": added,
+        "_meta": _meta(conn, _repo_freshness(conn, repo_root), counts),
+    }
+
+
+def _walk_calls(
+    conn: sqlite3.Connection,
+    qualname: str,
+    depth: int,
+    direction: str,
+    repo_root: Path | str | None,
+) -> dict:
+    counts = _scan_counts(
+        conn, {"edges_scanned": conn.execute("SELECT COUNT(*) FROM edges;").fetchone()[0]}
+    )
+    depth = max(0, min(depth, MAX_DEPTH))
+    start_ids = [
+        r[0]
+        for r in conn.execute("SELECT id FROM symbols WHERE qualname = ?;", (qualname,))
+    ]
+    if not start_ids or depth == 0:
+        return {"results": [], "_meta": _meta(conn, _repo_freshness(conn, repo_root), counts)}
+    info = {
+        r[0]: {"qualname": r[1], "path": r[2], "kind": r[3]}
+        for r in conn.execute("SELECT id, qualname, path, kind FROM symbols;")
+    }
+    visited = set(start_ids)
+    frontier = list(start_ids)
+    results: list[dict] = []
+    for d in range(1, depth + 1):
+        nxt: list[int] = []
+        for cur in frontier:
+            if direction == "callers":
+                rows = conn.execute(
+                    "SELECT src_id, confidence FROM edges"
+                    " WHERE dst_id = ? AND kind = 'calls';",
+                    (cur,),
+                ).fetchall()
+                neighbours = [(src, conf) for src, conf in rows]
+            else:
+                rows = conn.execute(
+                    "SELECT dst_id, confidence FROM edges"
+                    " WHERE src_id = ? AND kind = 'calls';",
+                    (cur,),
+                ).fetchall()
+                neighbours = [(dst, conf) for dst, conf in rows]
+            for nid, conf in neighbours:
+                if nid in visited or nid not in info:
+                    continue
+                visited.add(nid)
+                nxt.append(nid)
+                results.append({**info[nid], "depth": d, "confidence": conf})
+        if not nxt:
+            break
+        frontier = nxt
+    results.sort(key=lambda r: (r["depth"], r["qualname"]))
+    return {
+        "results": results,
+        "_meta": _meta(conn, _repo_freshness(conn, repo_root), counts),
+    }
+
+
+def callers(
+    conn: sqlite3.Connection,
+    qualname: str,
+    depth: int = 1,
+    repo_root: Path | str | None = None,
+) -> dict:
+    """Transitive reverse walk over 'calls' edges. Cycle-safe, capped at depth 3."""
+    return _walk_calls(conn, qualname, depth, "callers", repo_root)
+
+
+def callees(
+    conn: sqlite3.Connection,
+    qualname: str,
+    depth: int = 1,
+    repo_root: Path | str | None = None,
+) -> dict:
+    """Transitive forward walk over 'calls' edges. Cycle-safe, capped at depth 3."""
+    return _walk_calls(conn, qualname, depth, "callees", repo_root)
+
+
+# --- blast_radius ---
+
+
+def _spec_hits_file(spec: str, path: str) -> bool:
+    """True when import *spec* plausibly refers to indexed file *path*."""
+    cand = _REL_PREFIX_RE.sub("", spec.strip()).rstrip("/")
+    if not cand:
+        return False
+    stem = Path(path).stem
+    dotted = Path(path).with_suffix("").as_posix().replace("/", ".")
+    return cand == stem or cand == dotted or cand.endswith("." + stem)
+
+
+def blast_radius(
+    conn: sqlite3.Connection, target: str, repo_root: Path | str | None = None
+) -> dict:
+    """Direct reverse edges + reverse imports for a symbol or a file.
+
+    confirmed = EXTRACTED reverse calls + files importing the file;
+    potential = INFERRED reverse calls.
+    """
+    counts = _scan_counts(
+        conn, {"edges_scanned": conn.execute("SELECT COUNT(*) FROM edges;").fetchone()[0]}
+    )
+    files = {r[0] for r in conn.execute("SELECT path FROM files;")}
+    syms = conn.execute("SELECT id, path, qualname FROM symbols;").fetchall()
+    if target in files:
+        kind, seed_ids, owner_paths = "file", [s[0] for s in syms if s[1] == target], [target]
+    else:
+        seed = [(s[0], s[1]) for s in syms if s[2] == target]
+        if not seed:
+            return {
+                "target": target,
+                "kind": "unknown",
+                "confirmed": [],
+                "potential": [],
+                "_meta": _meta(conn, _repo_freshness(conn, repo_root), counts),
+            }
+        kind, seed_ids = "symbol", [s[0] for s in seed]
+        owner_paths = sorted({s[1] for s in seed})
+    info = {
+        r[0]: {"qualname": r[1], "path": r[2], "kind": r[3]}
+        for r in conn.execute("SELECT id, qualname, path, kind FROM symbols;")
+    }
+    confirmed: list[dict] = []
+    potential: list[dict] = []
+    seen_callers: set[int] = set()
+    for sid in seed_ids:
+        for src_id, conf in conn.execute(
+            "SELECT src_id, confidence FROM edges WHERE dst_id = ? AND kind = 'calls';",
+            (sid,),
+        ):
+            if src_id in seen_callers or src_id not in info:
+                continue
+            seen_callers.add(src_id)
+            entry = {**info[src_id], "confidence": conf, "via": target}
+            (confirmed if conf == "EXTRACTED" else potential).append(entry)
+    for src_path, dst_spec in conn.execute("SELECT src_path, dst_spec FROM imports;"):
+        if any(_spec_hits_file(dst_spec or "", owner) for owner in owner_paths):
+            if not any(
+                e["kind"] == "import" and e["path"] == src_path and e["spec"] == dst_spec
+                for e in confirmed
+            ):
+                confirmed.append({"kind": "import", "path": src_path, "spec": dst_spec})
+    confirmed.sort(key=lambda e: (e["kind"], e.get("qualname", ""), e["path"]))
+    potential.sort(key=lambda e: (e["qualname"], e["path"]))
+    freshness = _worst(
+        [freshness_for_file(conn, p, repo_root) for p in owner_paths]
+        + [_repo_freshness(conn, repo_root)]
+    )
+    return {
+        "target": target,
+        "kind": kind,
+        "confirmed": confirmed,
+        "potential": potential,
+        "_meta": _meta(conn, freshness, counts),
+    }
