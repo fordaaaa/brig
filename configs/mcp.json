@@ -1,0 +1,1 @@
+{"mcpServers": {"brig": {"args": ["run", "--directory", ".", "python", "-m", "brig.mcp"], "command": "uv"}}}
