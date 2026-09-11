@@ -36,7 +36,8 @@ repo -> tree-sitter parse -> symbols/edges -> SQLite WAL (one file per repo) -> 
 | `blast_radius <symbol\|file>` | reverse imports + callers, confirmed vs potential |
 | `check_refs <identifier>` | imports + text → `is_referenced` bool |
 
-Plus CLI mirror `brig index|search|outline|refs|...` for humans.
+Plus CLI mirror `brig index|search|outline|refs|...` for humans, and HTTP
+transport `brig serve` (same 7 over GET as JSON) for humans and gateways.
 
 ## Swarm layer
 

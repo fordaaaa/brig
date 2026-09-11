@@ -174,6 +174,34 @@ uv run brig refs parse
 | `callees` | Transitive callees of a qualname |
 | `blast` | Blast radius of a symbol or file |
 | `list` | List indexed slugs |
+| `serve` | Run the read-only HTTP API (default `127.0.0.1:8000`) |
+
+## HTTP API
+
+Same 7 queries as JSON over GET — a transport, not new tools:
+
+```sh
+brig serve --port 8000
+curl "http://127.0.0.1:8000/api/v1/search?slug=brig&q=norm_path"
+```
+
+`/api/v1/live`, `/api/v1/slugs`, `/search`, `/outline`, `/symbol`,
+`/refs`, `/callers`, `/callees`, `/blast`. Errors are
+`{"error": msg}` with 400/404. Binds loopback unless `--host` is set.
+
+## Docker (homelab gateway)
+
+```sh
+mkdir -p deploy/repos  # checkouts to index, mounted read-only
+docker compose -f deploy/docker-compose.yml up -d --build
+docker compose -f deploy/docker-compose.yml exec brig brig index /repos/<name> --slug <name>
+curl "http://localhost/brig/api/v1/search?slug=<name>&q=<query>"
+```
+
+Index data lives in the `brig-index` volume; repos mount at `/repos:ro`.
+The compose joins the external `homelab-gateway` network and carries the
+Traefik labels for `PathPrefix(`/brig`)` (needs `strip-brig-prefix@file`
+on the gateway side — see the homelab repo).
 
 ## MCP tools (7, hard cap)
 

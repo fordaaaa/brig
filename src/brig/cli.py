@@ -71,6 +71,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_list = sub.add_parser("list", help="List indexed slugs.")
     p_list.add_argument("--root", default=None, help="Brig store root; defaults to ~/.brig.")
 
+    p_serve = sub.add_parser("serve", help="Run the read-only HTTP API.")
+    p_serve.add_argument("--host", default="127.0.0.1", help="Bind address (default loopback).")
+    p_serve.add_argument("--port", type=int, default=8000, help="Bind port.")
+    p_serve.add_argument("--root", default=None, help="Brig store root; defaults to ~/.brig.")
+
     # Touch db import so missing dep fails fast at parser build.
     _ = db.default_root
     return parser
@@ -313,6 +318,13 @@ def _cmd_list(args: argparse.Namespace) -> int:
     return _emit({"slugs": slugs, "repos": details})
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    from brig import serve as serve_mod
+
+    serve_mod.serve(host=args.host, port=args.port, root=args.root)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point."""
     parser = build_parser()
@@ -327,6 +339,7 @@ def main(argv: list[str] | None = None) -> int:
         "callees": _cmd_callees,
         "blast": _cmd_blast,
         "list": _cmd_list,
+        "serve": _cmd_serve,
     }
     handler = dispatch.get(args.command)
     if handler is None:
