@@ -10,7 +10,10 @@ outlines, reference checks, caller/callee walks — with freshness and scan
 counts in every `_meta` envelope instead of guessed negatives. A small swarm
 kit (`skills/`, `plans/`) defines how investigator/builder/reviewer agents
 use the index without stepping on each other. See [SPEC.md](SPEC.md) for the
-swarm protocol and [AGENTS.md](AGENTS.md) for the canonical agent profile.
+design and [AGENTS.md](AGENTS.md) for the canonical agent profile.
+
+Storage is one SQLite WAL file per repo at `~/.brig/index/{slug}.db`
+(see [SPEC.md](SPEC.md) for tables). No embeddings, no graph DB, no telemetry.
 
 ## Install
 
@@ -18,6 +21,8 @@ Requires Python >= 3.11.
 
 ```sh
 uv sync
+uv run pytest      # must be green
+uv run brig --help # CLI smoke test
 ```
 
 ## Quickstart
@@ -168,14 +173,31 @@ uv run brig refs parse
 | `callers` | Transitive callers of a qualname |
 | `callees` | Transitive callees of a qualname |
 | `blast` | Blast radius of a symbol or file |
+| `list` | List indexed slugs |
 
-(`uv run brig list` also lists indexed slugs.)
+## MCP tools (7, hard cap)
+
+`index`, `search_symbols`, `get_symbol`, `get_outline`,
+`callers_callees` (`direction: callers|callees`), `blast_radius`, `check_refs`.
 
 ## MCP wiring
 
 `configs/mcp.json` is a snippet, not a drop-in config: it uses `"."` as the
 working directory placeholder, so replace it with the absolute path of your
 checkout before use. One snippet only — there are no per-IDE installers.
+
+```json
+{
+  "mcpServers": {
+    "brig": {
+      "command": "uv",
+      "args": ["run", "--directory", "/abs/path/to/brig", "python", "-m", "brig.mcp"]
+    }
+  }
+}
+```
+
+See `configs/README.md` for details. Requires `uv` on PATH and Python >= 3.11.
 
 ## Swarm kit
 
