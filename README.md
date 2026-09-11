@@ -1,21 +1,12 @@
 # brig
 
-brig is a deterministic code-graph index for a single repo: tree-sitter parses
-Python, JavaScript, and TypeScript into symbols stored in one SQLite WAL file,
-queryable through a CLI and 7 MCP tools. See [SPEC.md](SPEC.md) for the
-detailed design (storage, tools, envelopes).
+Deterministic code-graph index for one repo: tree-sitter parses Python, JavaScript, and TypeScript into symbols in one SQLite WAL file, queryable through a CLI and 7 MCP tools.
 
-It exists so coding agents get grounded answers — symbol search, file
-outlines, reference checks, caller/callee walks — with freshness and scan
-counts in every `_meta` envelope instead of guessed negatives. A small swarm
-kit (`skills/`, `plans/`) defines how investigator/builder/reviewer agents
-use the index without stepping on each other. See [SPEC.md](SPEC.md) for the
-design and [AGENTS.md](AGENTS.md) for the canonical agent profile.
+## Why
 
-Storage is one SQLite WAL file per repo at `~/.brig/index/{slug}.db`
-(see [SPEC.md](SPEC.md) for tables). No embeddings, no graph DB, no telemetry.
+Agents waste tokens reading whole files. Index once, retrieve exact spans — symbol search, outlines, refs, caller/callee walks — with freshness and scan counts in every `_meta` envelope instead of guessed negatives. No embeddings, no graph DB, no telemetry. Design: `SPEC.md`. Agent profile: `AGENTS.md`.
 
-## Install
+## Quickstart
 
 Requires Python >= 3.11.
 
@@ -23,173 +14,49 @@ Requires Python >= 3.11.
 uv sync
 uv run pytest      # must be green
 uv run brig --help # CLI smoke test
-```
-
-## Quickstart
-
-All outputs below are real excerpts from indexing brig itself; the full
-transcripts live in [plans/dogfood-output.md](plans/dogfood-output.md).
-
-Index the current repo:
-
-```sh
 uv run brig index .
-```
-
-```json
-{
-  "indexed": 4,
-  "skipped": 39,
-  "removed": 0,
-  "slug": "brig"
-}
-```
-
-Search symbols:
-
-```sh
 uv run brig search query
-```
-
-```json
-{
-  "results": [
-    {
-      "id": 215,
-      "path": "tests/test_query.py",
-      "qualname": "test_search_empty_query",
-      "kind": "function",
-      "sig": "def test_search_empty_query(conn):",
-      "doc": "",
-      "start_byte": 3040,
-      "end_byte": 3220,
-      "score": 106
-    }
-  ],
-  "_meta": {
-    "freshness": "fresh",
-    "confidence": 1.0,
-    "scan_counts": {
-      "files_scanned": 43,
-      "symbols_scanned": 269
-    }
-  }
-}
-```
-
-Outline a file (excerpt; 19 entries in total):
-
-```sh
 uv run brig outline src/brig/query.py
-```
-
-```json
-{
-  "files": {
-    "src/brig/query.py": [
-      {
-        "qualname": "_disk_path",
-        "kind": "function",
-        "sig": "def _disk_path(path: str, repo_root: Path | str | None) -> Path:"
-      },
-      {
-        "qualname": "search_symbols",
-        "kind": "function",
-        "sig": "def search_symbols(\n    conn: sqlite3.Connection, q: str, repo_root: Path | str | None = None\n) -> dict:"
-      },
-      {
-        "qualname": "blast_radius",
-        "kind": "function",
-        "sig": "def blast_radius(\n    conn: sqlite3.Connection, target: str, repo_root: Path | str | None = None\n) -> dict:"
-      }
-    ]
-  },
-  "freshness_by_file": {
-    "src/brig/query.py": "fresh"
-  },
-  "error": null,
-  "_meta": {
-    "freshness": "fresh",
-    "confidence": 1.0,
-    "scan_counts": {
-      "files_scanned": 43,
-      "symbols_scanned": 269
-    }
-  }
-}
-```
-
-Check references of an identifier (excerpt; import + text evidence):
-
-```sh
 uv run brig refs parse
+uv run brig callers some.qualname --depth 2
+uv run brig blast src/brig/query.py
+uv run brig list
 ```
 
-```json
-{
-  "is_referenced": true,
-  "evidence": [
-    {
-      "kind": "import",
-      "path": "src/brig/mcp.py",
-      "spec": "brig.parse"
-    },
-    {
-      "kind": "import",
-      "path": "src/brig/cli.py",
-      "spec": "brig.parse"
-    },
-    {
-      "kind": "text",
-      "path": "AGENTS.md",
-      "matches": 2,
-      "lines": [42]
-    }
-  ],
-  "scan_counts": {
-    "files_scanned": 43,
-    "symbols_scanned": 269
-  },
-  "_meta": {
-    "freshness": "fresh",
-    "confidence": 1.0,
-    "scan_counts": {
-      "files_scanned": 43,
-      "symbols_scanned": 269
-    }
-  }
-}
+Storage is one SQLite WAL file per repo at `~/.brig/index/{slug}.db`. Flags: `--slug` picks the repo when several are indexed, `--repo` overrides the checkout path, `--root` moves the store, `--depth` caps caller/callee walks at 3.
+
+## Architecture
+
+```text
+repo -> tree-sitter parse -> symbols/edges -> SQLite WAL (~/.brig/index/{slug}.db)
+  -> 7 MCP tools + CLI mirror (brig index|search|outline|symbol|refs|callers|callees|blast|list)
+  -> HTTP transport (brig serve, same queries over GET as JSON)
 ```
 
-## CLI reference
+## Serve
 
-| Subcommand | What it does |
-| ---------- | ------------ |
-| `index` | Incrementally index a repo |
-| `search` | Search symbols by query |
-| `outline` | Repo or single-file outline |
-| `symbol` | Get a symbol with its source slice |
-| `refs` | Check references of an identifier |
-| `callers` | Transitive callers of a qualname |
-| `callees` | Transitive callees of a qualname |
-| `blast` | Blast radius of a symbol or file |
-| `list` | List indexed slugs |
-| `serve` | Run the read-only HTTP API (default `127.0.0.1:8000`) |
-
-## HTTP API
-
-Same 7 queries as JSON over GET — a transport, not new tools:
+Read-only HTTP API. Same queries, no new tools. Binds loopback unless `--host` is set.
 
 ```sh
 brig serve --port 8000
 curl "http://127.0.0.1:8000/api/v1/search?slug=brig&q=norm_path"
 ```
 
-`/api/v1/live`, `/api/v1/slugs`, `/search`, `/outline`, `/symbol`,
-`/refs`, `/callers`, `/callees`, `/blast`. Errors are
-`{"error": msg}` with 400/404. Binds loopback unless `--host` is set.
+| Endpoint | Query params |
+| --- | --- |
+| `/api/v1/live` | — returns `{"status": "ok"}` |
+| `/api/v1/slugs` | — lists indexed slugs |
+| `/api/v1/search` | `slug`, `q` |
+| `/api/v1/outline` | `slug`, optional `path` |
+| `/api/v1/symbol` | `slug`, `id` (positive integer) |
+| `/api/v1/refs` | `slug`, `ident` |
+| `/api/v1/callers` | `slug`, `qualname`, optional `depth` (1–3) |
+| `/api/v1/callees` | `slug`, `qualname`, optional `depth` (1–3) |
+| `/api/v1/blast` | `slug`, `target` |
 
-## Docker (homelab gateway)
+Errors are `{"error": msg}` with 400 (missing/bad param) or 404 (unknown slug/endpoint). Flags from `src/brig/cli.py`: `brig serve [--host 127.0.0.1] [--port 8000] [--root ~/.brig]`. Routes from `src/brig/serve.py`.
+
+## Docker
 
 ```sh
 mkdir -p deploy/repos  # checkouts to index, mounted read-only
@@ -198,52 +65,33 @@ docker compose -f deploy/docker-compose.yml exec brig brig index /repos/<name> -
 curl "http://localhost/brig/api/v1/search?slug=<name>&q=<query>"
 ```
 
-Index data lives in the `brig-index` volume; repos mount at `/repos:ro`.
-The compose joins the external `homelab-gateway` network and carries the
-Traefik labels for `PathPrefix(`/brig`)` (needs `strip-brig-prefix@file`
-on the gateway side — see the homelab repo).
+Image serves `brig serve --host 0.0.0.0 --port 8000` (`Dockerfile`), index data lives in the `brig-index` volume, repos mount at `/repos:ro`, healthcheck hits `/api/v1/live`.
 
-## MCP tools (7, hard cap)
+## Homelab path
 
-`index`, `search_symbols`, `get_symbol`, `get_outline`,
-`callers_callees` (`direction: callers|callees`), `blast_radius`, `check_refs`.
+`deploy/docker-compose.yml` joins the external `homelab-gateway` network and carries the Traefik labels: `PathPrefix(`/brig`)`, priority `10`, `strip-brig-prefix@file`, `loadbalancer.server.port=8000`. The gateway side needs the matching `strip-brig-prefix` middleware (pattern in the homelab repo at `plugins/brig.yml`). Gateway URL after attach: `http://localhost/brig/api/v1/live`.
 
-## MCP wiring
+## Status
 
-`configs/mcp.json` is a snippet, not a drop-in config: it uses `"."` as the
-working directory placeholder, so replace it with the absolute path of your
-checkout before use. One snippet only — there are no per-IDE installers.
+| Subcommand | What it does | Status |
+| --- | --- | --- |
+| `index` | Incrementally index a repo | Live — `brig index <path> [--slug]` |
+| `search` | Search symbols by query | Live |
+| `outline` | Repo or single-file outline | Live |
+| `symbol` | Get a symbol with its source slice | Live — `brig symbol <id>` |
+| `refs` | Check references of an identifier | Live |
+| `callers` | Transitive callers of a qualname | Live — `--depth` capped at 3 |
+| `callees` | Transitive callees of a qualname | Live — `--depth` capped at 3 |
+| `blast` | Blast radius of a symbol or file | Live |
+| `list` | List indexed slugs | Live |
+| `serve` | Run the read-only HTTP API (default `127.0.0.1:8000`) | Live |
 
-```json
-{
-  "mcpServers": {
-    "brig": {
-      "command": "uv",
-      "args": ["run", "--directory", "/abs/path/to/brig", "python", "-m", "brig.mcp"]
-    }
-  }
-}
-```
+MCP tools (7, hard cap): `index`, `search_symbols`, `get_symbol`, `get_outline`, `callers_callees` (`direction: callers|callees`), `blast_radius`, `check_refs`. Wiring snippet: `configs/mcp.json` (replace the `"."` placeholder with your checkout path).
 
-See `configs/README.md` for details. Requires `uv` on PATH and Python >= 3.11.
+## Links
 
-## Swarm kit
+- Spec: `SPEC.md` (Tool surface section) · Agents: `AGENTS.md` · Swarm kit: `skills/`, `plans/`
+- MCP wiring: `configs/mcp.json`, `configs/README.md`
+- Service definition: `deploy/docker-compose.yml`
 
-- `skills/investigator/SKILL.md` — read-only index explorer; produces findings, changes nothing.
-- `skills/builder/SKILL.md` — executes a plan, 1–2 files per step.
-- `skills/reviewer/SKILL.md` — verifies the diff against the plan line by line.
-- `plans/` — one file per task (`plans/<task>.md`) following the goal /
-  non-goals / files-in-scope / verification-command / definition-of-done
-  template in `plans/README.md`; the builder executes only the plan.
-
-## Honest limitations
-
-- Language coverage is Python, JavaScript, and TypeScript only.
-- `INFERRED` call edges are heuristic name-matching, not scope-aware
-  resolution — treat them as leads, not proof.
-- No embeddings and no graph database by design: one SQLite WAL file per
-  repo, deterministic queries only.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+MIT — see `LICENSE`.
