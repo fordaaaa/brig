@@ -80,8 +80,13 @@ def meta_path(slug: str, root: Path | str | None = None) -> Path:
 
 
 def norm_path(path: Path | str) -> str:
-    """Lexical normalization to forward slashes (Windows-proof). No resolving."""
-    return Path(path).as_posix()
+    """Lexical normalization to forward slashes.
+
+    Backslashes become separators first so Windows-style paths normalize
+    identically on every OS (POSIX Path keeps backslashes literally, which
+    is why as_posix alone is not enough). No resolving — pure string shape.
+    """
+    return str(path).replace("\\", "/")
 
 
 def default_slug_for_repo(repo_root: Path | str) -> str:
