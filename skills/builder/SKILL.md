@@ -23,7 +23,7 @@ path:line-range — change
 
 - Execute only what the plan authorizes. No drive-by refactors,
   no out-of-scope files, no new backends or deps beyond
-  `tree-sitter` + stdlib `sqlite3` (v2 firewall per SPEC.md).
+   `tree-sitter` + stdlib `sqlite3` (v2 firewall).
 - TDD where the plan requires it: failing test first, then minimal
   implementation.
 - Byte offsets from tree-sitter are authoritative; never guess spans.

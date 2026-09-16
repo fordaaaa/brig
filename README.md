@@ -83,4 +83,4 @@ uv sync && uv run pytest   # green every change
 
 TDD, conventional commits (`feat:` `fix:` …), small diffs. `uv.lock` is committed; `*.db` and `.local/` are gitignored. Won't do: embeddings, graph DBs, per-IDE installers, telemetry.
 
-Spec: `SPEC.md` · Agents: `AGENTS.md` · Skills/plans: `skills/`, `plans/` · MIT — see `LICENSE`.
+Skills/plans: `skills/`, `plans/` · MIT — see `LICENSE`.
