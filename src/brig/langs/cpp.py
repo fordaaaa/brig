@@ -1,4 +1,4 @@
-"""C++ LanguageSpec: tree-sitter class/method/function + include extraction."""
+# c++: finds classes, methods, functions and #includes. (.h belongs to c.)
 
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def _func_name_in(node: Node, data: bytes) -> str | None:
                 decl = child
                 break
     if decl is None:
-        # declaration / field_declaration hold the declarator directly.
+        # the declarator sits right on these nodes.
         if node.type in ("declaration", "field_declaration"):
             decl = node
         else:
@@ -92,7 +92,7 @@ def _func_name_in(node: Node, data: bytes) -> str | None:
     if ident is None:
         return None
     t = _text(ident, data)
-    # destructor_name includes the ~ prefix already.
+    # the ~ in front is already included.
     return t
 
 
@@ -122,7 +122,7 @@ def _import_spec(node: Node, data: bytes) -> str | None:
 
 
 class CppSpec:
-    """Extractor for C++ files (NOT ``.h`` — owned by C)."""
+    # handles c++ files (not .h, that's c's).
 
     def matches(self, path: str) -> bool:
         return PurePath(path).suffix.lower() in _SUFFIXES
@@ -186,30 +186,13 @@ def _visit(node: Node, scope: list[str], data: bytes,
             for child in node.children:
                 _visit(child, scope, data, symbols, imports)
             return
-        kind = "method" if scope else "function"
-        # Scope entries are plain names; class-vs-namespace unknown here,
-        # but free functions at top level are functions; anything nested
-        # under a class_specifier visit carries that class in scope. Since
-        # namespaces also push scope, check: method only when the inner
-        # function is reached via class body recursion. We track this by
-        # emitting methods from declaration/field_declaration inside class
-        # bodies; a function_definition nested in class is a definition —
-        # treat as method when scope non-empty and not a namespace-only path.
-        # Heuristic: callers pass class scope only for class bodies;
-        # namespace bodies recurse with scope too, so disambiguate via
-        # caller: namespace_definition pushes scope but function_definition
-        # directly under namespace is still a function. We cannot tell here,
-        # so default to function unless scope was pushed by a class. To keep
-        # it simple, _visit_class_body passes a marker — instead, we handle
-        # methods via declaration/field_declaration paths and treat nested
-        # function_definition as method only when scope depth>=1 and the
-        # parent chain includes field_declaration_list. Fallback: function.
-        _emit(symbols, scope, name, kind if scope and _in_class(node) else "function",
+        # nested function under a class = method; under a namespace = function.
+        kind = "method" if scope and _in_class(node) else "function"
+        _emit(symbols, scope, name, kind,
               _sig_up_to_body(node, data), _leading_doc(node, data) or "", node)
         return
     if t in ("declaration", "field_declaration"):
-        # Method prototypes inside class bodies (e.g. `Greeter();`,
-        # `std::string greet(...);`). Skip non-function fields.
+        # method declarations inside a class. skip plain fields.
         has_fn = _find_first(node, frozenset({"function_declarator"})) is not None
         if has_fn and scope:
             name = _func_name_in(node, data)

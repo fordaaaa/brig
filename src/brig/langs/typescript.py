@@ -1,10 +1,4 @@
-"""TypeScript LanguageSpec: tree-sitter def/class + import extraction.
-
-Reuses the shared JS-family engine from ``brig.langs.javascript`` (node
-names match). Uses both tree-sitter-typescript objects: ``.ts`` parses with
-the typescript language; files that only parse cleanly as TSX (JSX) fall
-back to the tsx language.
-"""
+# typescript: same walker as javascript. tries ts, falls back to tsx.
 
 from __future__ import annotations
 
@@ -23,7 +17,7 @@ _SUFFIXES = frozenset({".ts", ".tsx", ".mts", ".cts"})
 
 
 class TypeScriptSpec:
-    """Extractor for ``.ts`` / ``.tsx`` / ``.mts`` / ``.cts`` files."""
+    # handles .ts, .tsx, .mts and .cts files.
 
     def matches(self, path: str) -> bool:
         return PurePath(path).suffix.lower() in _SUFFIXES

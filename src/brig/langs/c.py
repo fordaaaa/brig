@@ -1,4 +1,4 @@
-"""C LanguageSpec: tree-sitter function/struct/enum + include extraction."""
+# c: finds functions, structs, enums and #includes.
 
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ def _import_spec(node: Node, data: bytes) -> str | None:
 
 
 class CSpec:
-    """Extractor for ``.c`` / ``.h`` files."""
+    # handles .c and .h files.
 
     def matches(self, path: str) -> bool:
         return PurePath(path).suffix.lower() in _SUFFIXES
@@ -145,7 +145,7 @@ def _visit(node: Node, data: bytes, symbols: list[Symbol], imports: list[str]) -
     if t in ("struct_specifier", "enum_specifier", "union_specifier"):
         name = _type_name(node, data)
         if name is not None:
-            # Anonymous structs/enums (no name) are skipped as symbols.
+            # no name = no symbol.
             symbols.append(
                 Symbol(
                     qualname=name,

@@ -1,8 +1,4 @@
-"""LanguageSpec registry. See SPEC.md (Languages v1: Registry pattern).
-
-Register a new language by adding one entry to REGISTRY only;
-get_spec() dispatches purely off REGISTRY order.
-"""
+# to add a language, just add one line to registry below.
 
 from __future__ import annotations
 
@@ -13,23 +9,19 @@ from brig.parse import ExtractResult
 
 
 class LanguageSpec(Protocol):
-    """Per-language tree-sitter extractor."""
+    # what one language knows how to do.
 
     def matches(self, path: str) -> bool:
-        """True when this spec handles the file at *path* (suffix check)."""
+        # true if this spec handles the file (goes by suffix).
         ...
 
     def extract(self, source: str | bytes) -> ExtractResult:
-        """Extract symbols + raw import specs from file source.
-
-        Accepts str or bytes; byte spans index the UTF-8 encoding.
-        """
+        # pull symbols + imports out of source. takes str or bytes.
         ...
 
 
 def _specs() -> dict[str, LanguageSpec]:
-    # Imported lazily so spec modules (which import brig.parse) never
-    # create an import cycle at package import time.
+    # imported here (not at the top) to avoid an import loop.
     from brig.langs.c import CSpec
     from brig.langs.cpp import CppSpec
     from brig.langs.csharp import CSharpSpec
@@ -49,13 +41,13 @@ def _specs() -> dict[str, LanguageSpec]:
     }
 
 
-REGISTRY: dict[str, LanguageSpec] = _specs()
+registry: dict[str, LanguageSpec] = _specs()
 
 
 def get_spec(path: Path | str) -> LanguageSpec | None:
-    """Return the first registered spec matching *path*, else None."""
+    # first spec whose suffix matches, or nothing.
     name = str(path)
-    for spec in REGISTRY.values():
+    for spec in registry.values():
         if spec.matches(name):
             return spec
     return None

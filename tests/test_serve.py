@@ -1,8 +1,6 @@
-"""HTTP serve tests — read-only JSON API over thread + ephemeral port.
-
-TDD: written before src/brig/serve.py. Spins up serve.serve() on port 0
-in a daemon thread, drives it with stdlib urllib, shuts it down cleanly.
-"""
+# HTTP serve tests — read-only JSON API over thread + ephemeral port.
+# TDD: written before src/brig/serve.py. Spins up serve.serve() on port 0
+# in a daemon thread, drives it with stdlib urllib, shuts it down cleanly.
 
 from __future__ import annotations
 
@@ -19,7 +17,7 @@ import pytest
 from brig import db
 from brig.serve import Handler
 
-HELPERS_PY = '''"""Helper utilities."""
+helpers_py = '''"""Helper utilities."""
 
 def helper(name):
     """Greet by name."""
@@ -48,7 +46,7 @@ def _get(port: int, path: str) -> tuple[int, dict]:
 def live(tmp_path: Path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "helpers.py").write_text(HELPERS_PY, encoding="utf-8")
+    (repo / "helpers.py").write_text(helpers_py, encoding="utf-8")
     home = tmp_path / "brig-home"
     conn = db.open_or_create("repo", root=home)
     try:

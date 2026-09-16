@@ -1,4 +1,4 @@
-"""Java LanguageSpec: tree-sitter class/method/ctor + package/import extraction."""
+# java: finds classes, methods and imports.
 
 from __future__ import annotations
 
@@ -83,7 +83,7 @@ def _dotted(node: Node, data: bytes) -> str:
 
 
 class JavaSpec:
-    """Extractor for ``.java`` files."""
+    # handles .java files.
 
     def matches(self, path: str) -> bool:
         return PurePath(path).suffix.lower() in _SUFFIXES

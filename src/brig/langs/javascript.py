@@ -1,9 +1,5 @@
-"""JavaScript LanguageSpec: tree-sitter def/class + import extraction.
-
-Also hosts the shared JS-family walk engine reused by the TypeScript spec
-(the tree-sitter javascript/typescript grammars share node names for the
-constructs v1 extracts).
-"""
+# javascript: finds functions, classes and imports.
+# also holds the shared js/ts walker the typescript spec reuses.
 
 from __future__ import annotations
 
@@ -54,7 +50,7 @@ def _method_name(node: Node, data: bytes) -> str | None:
 
 
 def _sig_up_to_body(node: Node, data: bytes) -> str:
-    """Source from the keyword/name up to the body brace (excluded)."""
+    # text from the keyword/name up to the body. body not included.
     end = node.end_byte
     for child in node.children:
         if child.type in _BODY_TYPES:
@@ -65,7 +61,7 @@ def _sig_up_to_body(node: Node, data: bytes) -> str:
 
 
 def _declarator_sig(node: Node, data: bytes) -> str:
-    """Signature for ``name = <fn>`` declarators (cut before a block body)."""
+    # signature for 'name = fn' lines, cut before the body.
     end = node.end_byte
     stack = list(node.children)
     first_body: Node | None = None
@@ -95,7 +91,7 @@ def _clean_comment(text: str) -> str:
 
 
 def _leading_doc(anchor: Node, data: bytes) -> str:
-    """Contiguous comment block immediately preceding *anchor* (cleaned)."""
+    # comments right above a symbol, cleaned up.
     chain: list[Node] = []
     cursor_end = anchor.start_byte
     sib = anchor.prev_named_sibling
@@ -130,7 +126,7 @@ def _single_string_arg(node: Node, data: bytes) -> str | None:
 
 
 class JavaScriptSpec:
-    """Extractor for ``.js`` / ``.jsx`` / ``.mjs`` / ``.cjs`` files."""
+    # handles .js, .jsx, .mjs and .cjs files.
 
     def matches(self, path: str) -> bool:
         return PurePath(path).suffix.lower() in _SUFFIXES
@@ -141,7 +137,7 @@ class JavaScriptSpec:
 
 
 def extract_source(data: bytes, language: Language) -> ExtractResult:
-    """Run the shared JS-family extraction with *language*."""
+    # run the shared extraction with the given grammar.
     tree = Parser(language).parse(data)
     symbols: list[Symbol] = []
     imports: list[str] = []
@@ -230,7 +226,7 @@ def _visit(
                 for child in node.children:
                     _visit(child, scope + [name], data, symbols, imports, None)
                 return
-        # Object-literal methods etc: no symbol, but walk the body.
+        # object methods: no symbol, still look inside.
         for child in node.children:
             _visit(child, scope, data, symbols, imports, None)
         return

@@ -1,24 +1,18 @@
-"""Read-only HTTP API over the brig index. See SPEC.md (Tool surface).
-
-Same queries as the CLI/MCP transports — no new tools. Every endpoint opens
-its own SQLite connection (WAL reads are concurrency-safe), calls one
-``brig.query`` function, and returns its dict verbatim, ``_meta`` included.
-
-Endpoints (all GET, all JSON):
-  /api/v1/live                        -> {"status": "ok"}
-  /api/v1/slugs                       -> {"slugs": [...]}
-  /api/v1/search?slug=&q=
-  /api/v1/outline?slug=[&path=]
-  /api/v1/symbol?slug=&id=
-  /api/v1/refs?slug=&ident=
-  /api/v1/callers?slug=&qualname=[&depth=]
-  /api/v1/callees?slug=&qualname=[&depth=]
-  /api/v1/blast?slug=&target=
-  /                                 tiny human index page
-
-Errors are {"error": msg} with 400 (missing/bad param) or 404 (unknown
-slug). Binds loopback by default; pass --host only behind a trusted proxy.
-"""
+# read-only web api over the index. same questions as cli/mcp, no new tools.
+# each request opens its own db connection and returns the answer as-is.
+# Endpoints (all GET, all JSON):
+# /api/v1/live                        -> {"status": "ok"}
+# /api/v1/slugs                       -> {"slugs": [...]}
+# /api/v1/search?slug=&q=
+# /api/v1/outline?slug=[&path=]
+# /api/v1/symbol?slug=&id=
+# /api/v1/refs?slug=&ident=
+# /api/v1/callers?slug=&qualname=[&depth=]
+# /api/v1/callees?slug=&qualname=[&depth=]
+# /api/v1/blast?slug=&target=
+# /                                 tiny human index page
+# Errors are {"error": msg}: 400 = bad param, 404 = unknown slug.
+# loopback only unless you pass --host behind a trusted proxy.
 
 from __future__ import annotations
 
@@ -35,7 +29,7 @@ def _store_base(root: str | None) -> Path:
 
 
 def _open(slug: str, base: Path):
-    """Return (conn, repo_root) or raise LookupError/ValueError."""
+    # open the slug's db, or raise saying it's unknown.
     if not slug or not db.is_valid_slug(slug):
         raise LookupError(f"unknown slug {slug!r}; see /api/v1/slugs.")
     if not (base / "index" / f"{slug}.db").exists():
@@ -156,7 +150,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def serve(host: str = "127.0.0.1", port: int = 8000, root: str | None = None) -> None:
-    """Run the API forever. Port 0 picks an ephemeral port (tests)."""
+    # serve forever. port 0 means 'pick one' (tests use that).
     server = ThreadingHTTPServer((host, port), Handler)
     server.brig_root = _store_base(root)
     try:

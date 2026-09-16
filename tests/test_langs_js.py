@@ -1,4 +1,4 @@
-"""Phase 1b: javascript LanguageSpec tests. TDD: written before langs/javascript.py."""
+# Phase 1b: javascript LanguageSpec tests. TDD: written before langs/javascript.py.
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from brig import parse
 from brig.langs import get_spec
 from brig.langs.javascript import JavaScriptSpec
 
-FIXTURE = Path(__file__).parent / "fixtures" / "sample.js"
+fixture = Path(__file__).parent / "fixtures" / "sample.js"
 
-EXPECTED = {
+expected = {
     "load": "function",
     "load.nested": "function",
     "double": "function",
@@ -20,11 +20,11 @@ EXPECTED = {
 
 
 def _load() -> bytes:
-    return FIXTURE.read_bytes()
+    return fixture.read_bytes()
 
 
 def test_get_spec_dispatches_js():
-    assert isinstance(get_spec(str(FIXTURE)), JavaScriptSpec)
+    assert isinstance(get_spec(str(fixture)), JavaScriptSpec)
     assert isinstance(get_spec("a.jsx"), JavaScriptSpec)
     assert isinstance(get_spec("a.mjs"), JavaScriptSpec)
     assert get_spec("a.ts") is not None  # sanity: ts handled elsewhere
@@ -32,15 +32,15 @@ def test_get_spec_dispatches_js():
 
 
 def test_js_qualnames_and_kinds():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     got = {s.qualname: s.kind for s in res.symbols}
-    assert got == EXPECTED
+    assert got == expected
 
 
 def test_js_byte_spans_slice_source():
     src = _load()
-    res = parse.extract(FIXTURE, src)
+    res = parse.extract(fixture, src)
     assert res is not None
     for s in res.symbols:
         sl = src[s.start_byte : s.end_byte].decode("utf-8")
@@ -55,7 +55,7 @@ def test_js_byte_spans_slice_source():
 
 
 def test_js_sig_and_doc():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     by_name = {s.qualname: s for s in res.symbols}
     assert by_name["load"].sig == "async function load(url)"
@@ -68,13 +68,13 @@ def test_js_sig_and_doc():
 
 
 def test_js_imports():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     assert res.imports == ["mod-a", "mod-b", "mod-c", "mod-d"]
 
 
 def test_js_require_only_symbol_free():
     # `cfg` is a require() call, not a function: no symbol, but an import.
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     assert "cfg" not in {s.qualname for s in res.symbols}

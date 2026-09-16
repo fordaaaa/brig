@@ -1,4 +1,4 @@
-"""Smoke test: package imports."""
+# Smoke test: package imports.
 
 
 def test_import_brig():

@@ -1,4 +1,4 @@
-"""Phase 1a: incremental indexing + index_repo tests. TDD: written before pipeline."""
+# Phase 1a: incremental indexing + index_repo tests. TDD: written before pipeline.
 
 from __future__ import annotations
 

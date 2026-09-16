@@ -1,4 +1,4 @@
-"""Polyglot: C++ LanguageSpec tests. TDD: written before langs/cpp.py."""
+# Polyglot: C++ LanguageSpec tests. TDD: written before langs/cpp.py.
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from pathlib import Path
 from brig import parse
 from brig.langs import get_spec
 
-FIXTURE = Path(__file__).parent / "fixtures" / "sample.cpp"
+fixture = Path(__file__).parent / "fixtures" / "sample.cpp"
 
-EXPECTED = {
+expected = {
     "Greeter": "class",
     "Greeter.Greeter": "method",
     "Greeter.greet": "method",
@@ -18,13 +18,13 @@ EXPECTED = {
 
 
 def _load() -> bytes:
-    return FIXTURE.read_bytes()
+    return fixture.read_bytes()
 
 
 def test_get_spec_dispatches_cpp():
     from brig.langs.cpp import CppSpec
 
-    assert isinstance(get_spec(str(FIXTURE)), CppSpec)
+    assert isinstance(get_spec(str(fixture)), CppSpec)
     assert isinstance(get_spec("x.hpp"), CppSpec)
     assert isinstance(get_spec("x.cc"), CppSpec)
     # C owns .h per plan decision.
@@ -34,15 +34,15 @@ def test_get_spec_dispatches_cpp():
 
 
 def test_cpp_qualnames_and_kinds():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     got = {s.qualname: s.kind for s in res.symbols}
-    assert got == EXPECTED
+    assert got == expected
 
 
 def test_cpp_byte_spans_slice_source():
     src = _load()
-    res = parse.extract(FIXTURE, src)
+    res = parse.extract(fixture, src)
     assert res is not None
     for s in res.symbols:
         sl = src[s.start_byte : s.end_byte].decode("utf-8")
@@ -55,7 +55,7 @@ def test_cpp_byte_spans_slice_source():
 
 
 def test_cpp_sig_and_doc():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     by_name = {s.qualname: s for s in res.symbols}
     assert "Greeter class." in by_name["Greeter"].doc
@@ -67,12 +67,12 @@ def test_cpp_sig_and_doc():
 
 
 def test_cpp_imports():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     assert res.imports == ["vector", "foo.h"]
 
 
 def test_cpp_path_stamped():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
-    assert all(s.path == str(FIXTURE) for s in res.symbols)
+    assert all(s.path == str(fixture) for s in res.symbols)

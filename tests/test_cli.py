@@ -1,9 +1,7 @@
-"""Phase 3a: CLI mirror tests — argparse JSON surface over the query layer.
-
-TDD: written before src/brig/cli.py. Exercises each subcommand via
-``cli.main(argv)`` with ``--root`` pointed at a tmp store, asserting stdout
-parses as JSON with the expected keys.
-"""
+# Phase 3a: CLI mirror tests — argparse JSON surface over the query layer.
+# TDD: written before src/brig/cli.py. Exercises each subcommand via
+# runs cli.main(argv) with --root pointed at a tmp store, checks stdout
+# parses as JSON with the expected keys.
 
 from __future__ import annotations
 
@@ -14,7 +12,7 @@ import pytest
 
 from brig import cli
 
-HELPERS_PY = '''"""Helper utilities."""
+helpers_py = '''"""Helper utilities."""
 
 def helper(name):
     """Greet by name."""
@@ -29,7 +27,7 @@ class Worker:
         return helper(name)
 '''
 
-MAIN_PY = '''import helpers
+main_py = '''import helpers
 from helpers import helper
 
 
@@ -48,8 +46,8 @@ def entry():
 def repo(tmp_path: Path) -> Path:
     d = tmp_path / "repo"
     d.mkdir()
-    (d / "helpers.py").write_text(HELPERS_PY, encoding="utf-8")
-    (d / "main.py").write_text(MAIN_PY, encoding="utf-8")
+    (d / "helpers.py").write_text(helpers_py, encoding="utf-8")
+    (d / "main.py").write_text(main_py, encoding="utf-8")
     return d
 
 

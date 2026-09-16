@@ -1,4 +1,4 @@
-"""C# LanguageSpec: tree-sitter class/method/ctor + using extraction."""
+# c#: finds classes, methods and usings.
 
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ def _using_spec(node: Node, data: bytes) -> str | None:
 
 
 class CSharpSpec:
-    """Extractor for ``.cs`` files."""
+    # handles .cs files.
 
     def matches(self, path: str) -> bool:
         return PurePath(path).suffix.lower() in _SUFFIXES
@@ -131,7 +131,7 @@ def _visit(node: Node, scope: list[str], data: bytes,
     if t in ("method_declaration", "constructor_declaration", "destructor_declaration"):
         name = _name(node, data)
         if name is None:
-            # constructor node holds identifier directly, not via field.
+            # ctors keep their name right on the node.
             for child in node.named_children:
                 if child.type == "identifier":
                     name = _text(child, data)
@@ -144,7 +144,7 @@ def _visit(node: Node, scope: list[str], data: bytes,
             _visit(child, scope, data, symbols, imports)
         return
     if t == "using_directive":
-        # Skip `using var x = ...` / `using (...)` statements; only namespace imports.
+        # only real imports, not 'using var x = ...' lines.
         has_eq = any(c.type == "=" for c in node.children)
         if not has_eq:
             spec = _using_spec(node, data)

@@ -1,4 +1,4 @@
-"""tree-sitter parsing pipeline. See SPEC.md (Architecture: repo -> parse -> symbols/edges)."""
+# parse one file with tree-sitter.
 
 from __future__ import annotations
 
@@ -9,15 +9,12 @@ from typing import ClassVar, Iterator
 
 @dataclass
 class Symbol:
-    """One extracted def/class with a byte-exact span.
-
-    Mapping-compatible (``s["qualname"]`` / ``s.get("sig", "")``) so the
-    result unpacks straight into ``db.index_file`` / ``db.index_repo``.
-    """
+    # one function/class/method found in a file.
+    # acts like a dict so db.py can use it directly.
 
     path: str = ""
     qualname: str = ""
-    kind: str = ""  # function | class | method (v1 only)
+    kind: str = ""  # function, class or method
     sig: str = ""
     doc: str = ""
     start_byte: int = 0
@@ -47,11 +44,8 @@ class Symbol:
 
 @dataclass
 class ExtractResult:
-    """Symbol + import extraction for one file.
-
-    Unpacks as ``symbols, imports = result`` for the ``db.index_repo``
-    ``extract_fn`` contract.
-    """
+    # what we found in one file: symbols + imports.
+    # unpacks as: symbols, imports = result.
 
     symbols: list[Symbol] = field(default_factory=list)
     imports: list[str] = field(default_factory=list)
@@ -64,11 +58,9 @@ class ExtractResult:
 
 
 def extract(path: Path | str, source: bytes | str) -> ExtractResult | None:
-    """Dispatch to the registered LanguageSpec for *path*.
-
-    Returns None when no spec matches (unsupported language).
-    """
-    from brig.langs import get_spec  # lazy: langs imports this module
+    # pick the language spec by file suffix.
+    # returns nothing when no spec matches.
+    from brig.langs import get_spec  # lazy import, avoids a loop
 
     spec = get_spec(path)
     if spec is None:

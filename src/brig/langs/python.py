@@ -1,4 +1,4 @@
-"""Python LanguageSpec: tree-sitter def/class + import extraction."""
+# python: finds defs, classes and imports.
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def _text(node: Node, data: bytes) -> str:
 
 
 def _signature(node: Node, data: bytes) -> str:
-    """Source from the def/class keyword up to and including the ``:``."""
+    # text from def/class up to the colon.
     end = node.end_byte
     for child in node.children:
         if child.type == ":":
@@ -38,7 +38,7 @@ def _signature(node: Node, data: bytes) -> str:
 
 
 def _docstring(node: Node, data: bytes) -> str:
-    """First-statement string literal of the def/class body, else ''."""
+    # first string in the body, or nothing.
     body = node.child_by_field_name("body")
     if body is None or not body.named_children:
         return ""
@@ -68,7 +68,7 @@ def _module_of_import_from(node: Node, data: bytes) -> str | None:
 
 
 class PythonSpec:
-    """Extractor for ``.py`` files (function / class / method only)."""
+    # handles .py files.
 
     def matches(self, path: str) -> bool:
         return PurePath(path).suffix.lower() in _SUFFIXES

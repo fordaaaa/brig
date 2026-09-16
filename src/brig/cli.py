@@ -1,8 +1,5 @@
-"""CLI mirror for brig. See SPEC.md (Tool surface + CLI mirror).
-
-JSON to stdout (forward-slash paths, ``_meta`` envelope as returned by the
-query layer); errors to stderr with exit code 1.
-"""
+# command line version of the same 7 tools.
+# prints json. errors go to stderr, exit code 1.
 
 from __future__ import annotations
 
@@ -27,7 +24,6 @@ def _add_store_args(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the argparse parser."""
     from brig import db
 
     parser = argparse.ArgumentParser(prog="brig", description="brig code-graph index CLI")
@@ -76,7 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument("--port", type=int, default=8000, help="Bind port.")
     p_serve.add_argument("--root", default=None, help="Brig store root; defaults to ~/.brig.")
 
-    # Touch db import so missing dep fails fast at parser build.
+    # fail fast if the db import is broken.
     _ = db.default_root
     return parser
 
@@ -112,7 +108,7 @@ def _fail(message: str) -> int:
 
 
 def _resolve_slug(slug_arg: str | None, base: Path) -> tuple[str | None, int]:
-    """Return (slug, 0) or (None, 1) after printing the error."""
+    # find the slug, or print why we can't.
     if slug_arg is not None:
         if (_index_dir(base) / f"{slug_arg}.db").exists():
             return slug_arg, 0
@@ -140,7 +136,7 @@ def _repo_root_for(slug: str, base: Path, explicit: str | None) -> Path | None:
 
 
 def _safe_extract(path, source):
-    """Wrapper tolerating unsupported languages (None -> empty)."""
+    # unknown file types become empty (no crash).
     from brig.parse import extract
 
     res = extract(path, source)
@@ -155,7 +151,7 @@ def _emit(payload: dict) -> int:
 
 
 def _stash_repo_root(slug: str, base: Path, repo: Path) -> None:
-    """Record the absolute repo checkout in the .meta sidecar (additive)."""
+    # remember where the repo lives in the .meta file.
     from brig import db
 
     try:
@@ -179,7 +175,7 @@ def _cmd_index(args: argparse.Namespace) -> int:
     except Exception as exc:
         return _fail(f"index failed: {exc}")
     _stash_repo_root(slug, base, repo)
-    # Best-effort INFERRED call edges so callers/callees/blast work from CLI.
+    # best-effort call edges so callers/blast work too.
     try:
         conn = db.open_or_create(slug, root=base)
         try:
@@ -326,7 +322,6 @@ def _cmd_serve(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry point."""
     parser = build_parser()
     args = parser.parse_args(argv)
     dispatch = {

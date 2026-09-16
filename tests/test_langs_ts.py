@@ -1,4 +1,4 @@
-"""Phase 1b: typescript LanguageSpec tests. TDD: written before langs/typescript.py."""
+# Phase 1b: typescript LanguageSpec tests. TDD: written before langs/typescript.py.
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from brig import parse
 from brig.langs import get_spec
 from brig.langs.typescript import TypeScriptSpec
 
-FIXTURE = Path(__file__).parent / "fixtures" / "sample.ts"
+fixture = Path(__file__).parent / "fixtures" / "sample.ts"
 
-EXPECTED = {
+expected = {
     "greet": "function",
     "Greeter": "class",
     "Greeter.greet": "method",
@@ -19,26 +19,26 @@ EXPECTED = {
 
 
 def _load() -> bytes:
-    return FIXTURE.read_bytes()
+    return fixture.read_bytes()
 
 
 def test_get_spec_dispatches_ts():
-    assert isinstance(get_spec(str(FIXTURE)), TypeScriptSpec)
+    assert isinstance(get_spec(str(fixture)), TypeScriptSpec)
     assert isinstance(get_spec("a.tsx"), TypeScriptSpec)
     assert get_spec("a.js") is not None  # sanity: js handled elsewhere
     assert get_spec("other.go") is None
 
 
 def test_ts_qualnames_and_kinds():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     got = {s.qualname: s.kind for s in res.symbols}
-    assert got == EXPECTED
+    assert got == expected
 
 
 def test_ts_byte_spans_slice_source():
     src = _load()
-    res = parse.extract(FIXTURE, src)
+    res = parse.extract(fixture, src)
     assert res is not None
     for s in res.symbols:
         sl = src[s.start_byte : s.end_byte].decode("utf-8")
@@ -53,7 +53,7 @@ def test_ts_byte_spans_slice_source():
 
 
 def test_ts_sig_and_doc():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     by_name = {s.qualname: s for s in res.symbols}
     assert by_name["greet"].sig == "function greet(name: string): string"
@@ -65,7 +65,7 @@ def test_ts_sig_and_doc():
 
 
 def test_ts_imports():
-    res = parse.extract(FIXTURE, _load())
+    res = parse.extract(fixture, _load())
     assert res is not None
     assert res.imports == ["./mod-a", "./types", "mod-c", "./dyn"]
 

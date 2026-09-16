@@ -1,7 +1,5 @@
-"""MCP stdio server exposing the 7 tools. See SPEC.md (Architecture, Tool surface).
-
-JSON-RPC 2.0 over stdin/stdout (newline-delimited), stdlib only.
-"""
+# the mcp server: 7 tools over stdin/stdout as json-rpc.
+# stdlib only.
 
 from __future__ import annotations
 
@@ -9,11 +7,11 @@ import json
 import sys
 from pathlib import Path
 
-PROTOCOL_VERSION = "2024-11-05"
-SERVER_NAME = "brig"
-SERVER_VERSION = "0.1.0"
+protocol_version = "2024-11-05"
+server_name = "brig"
+server_version = "0.1.0"
 
-TOOLS = [
+tools = [
     {
         "name": "index",
         "description": "Index a repo dir (incremental).",
@@ -114,15 +112,17 @@ TOOLS = [
     },
 ]
 
-_TOOL_NAMES = {t["name"] for t in TOOLS}
+_TOOL_NAMES = {t["name"] for t in tools}
 
 
 class InvalidParams(Exception):
-    """Malformed tool arguments -> JSON-RPC -32602."""
+    # bad arguments from the caller.
+    pass
 
 
 class ToolRuntimeError(Exception):
-    """Runtime failure -> tools/call result with isError true."""
+    # something broke while running the tool.
+    pass
 
 
 def _base(root: str | None) -> Path:
@@ -192,6 +192,7 @@ def _open(slug: str, base: Path):
 
 
 def _safe_extract(path, source):
+    # unknown file types become empty (no crash).
     from brig.parse import extract
 
     res = extract(path, source)
@@ -215,7 +216,7 @@ def _fresh_meta() -> dict:
     return {"freshness": "fresh", "confidence": 1.0}
 
 
-# --- tool implementations (each returns a plain-data dict with _meta) ---
+# --- the 7 tools (each returns plain data + _meta) ---
 
 
 def _tool_index(args: dict) -> dict:
@@ -368,7 +369,7 @@ def _ok(req_id, result: dict) -> dict:
 
 
 def handle_request(req: dict) -> dict | None:
-    """Handle one JSON-RPC message. Returns None for notifications."""
+    # handle one json-rpc message. nothing back for notifications.
     if not isinstance(req, dict):
         return _err(None, -32600, "invalid request")
     method = req.get("method")
@@ -386,15 +387,15 @@ def handle_request(req: dict) -> dict | None:
         return _ok(
             req_id,
             {
-                "protocolVersion": PROTOCOL_VERSION,
+                "protocolVersion": protocol_version,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
+                "serverInfo": {"name": server_name, "version": server_version},
             },
         )
     if method == "ping":
         return _ok(req_id, {})
     if method == "tools/list":
-        return _ok(req_id, {"tools": TOOLS})
+        return _ok(req_id, {"tools": tools})
     if method == "tools/call":
         if not isinstance(params, dict):
             return _err(req_id, -32602, "invalid params: expected object")

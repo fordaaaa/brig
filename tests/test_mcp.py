@@ -1,8 +1,6 @@
-"""Phase 3b: MCP stdio server tests — JSON-RPC over handler + subprocess.
-
-TDD: written before src/brig/mcp.py. Drives handle_request() directly
-(plus one stdio subprocess smoke test); no external SDK deps.
-"""
+# Phase 3b: MCP stdio server tests — JSON-RPC over handler + subprocess.
+# TDD: written before src/brig/mcp.py. Drives handle_request() directly
+# (plus one stdio subprocess smoke test); no external SDK deps.
 
 from __future__ import annotations
 
@@ -14,9 +12,9 @@ from pathlib import Path
 import pytest
 
 from brig import db
-from brig.mcp import TOOLS, handle_request
+from brig.mcp import tools, handle_request
 
-HELPERS_PY = '''"""Helper utilities."""
+helpers_py = '''"""Helper utilities."""
 
 def helper(name):
     """Greet by name."""
@@ -31,7 +29,7 @@ class Worker:
         return helper(name)
 '''
 
-MAIN_PY = '''import helpers
+main_py = '''import helpers
 from helpers import helper
 
 
@@ -50,8 +48,8 @@ def entry():
 def setup(tmp_path: Path) -> dict:
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "helpers.py").write_text(HELPERS_PY, encoding="utf-8")
-    (repo / "main.py").write_text(MAIN_PY, encoding="utf-8")
+    (repo / "helpers.py").write_text(helpers_py, encoding="utf-8")
+    (repo / "main.py").write_text(main_py, encoding="utf-8")
     home = tmp_path / "brig-home"
     conn = db.open_or_create("repo", root=home)
     db.index_repo(repo, conn=conn)
@@ -101,7 +99,7 @@ def test_tools_list_has_exactly_seven(setup):
     }
     # hard cap: terse schema payload < 4000 tokens (~4 chars/token).
     assert len(json.dumps(tools)) < 16000
-    assert len(TOOLS) == 7
+    assert len(tools) == 7
 
 
 def test_search_round_trip(setup):

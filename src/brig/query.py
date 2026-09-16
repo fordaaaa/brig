@@ -1,11 +1,6 @@
-"""Query tools (search, outline, refs, callers, blast). See SPEC.md (Tool surface).
-
-Logic layer only (no CLI/MCP wiring): every public function takes an open
-``sqlite3`` connection from ``brig.db`` plus an optional ``repo_root`` used
-to resolve the relative ``path`` keys stored in the index, and returns a
-plain-data dict carrying a ``_meta`` envelope
-``{freshness, confidence, scan_counts?}``.
-"""
+# search, outline, refs, callers, blast. no cli/mcp stuff here.
+# every function takes an open db connection and returns plain data
+# with a _meta envelope (freshness, confidence, scan counts).
 
 from __future__ import annotations
 
@@ -14,14 +9,14 @@ import re
 import sqlite3
 from pathlib import Path
 
-FRESH = "fresh"
-EDITED = "edited_uncommitted"
-STALE = "stale_index"
+fresh = "fresh"
+edited = "edited_uncommitted"
+stale = "stale_index"
 
-MAX_DEPTH = 3
+max_depth = 3
 
-_CONFIDENCE = {FRESH: 1.0, EDITED: 0.5, STALE: 0.0}
-_SEVERITY = {FRESH: 0, EDITED: 1, STALE: 2}
+_CONFIDENCE = {fresh: 1.0, edited: 0.5, stale: 0.0}
+_SEVERITY = {fresh: 0, edited: 1, stale: 2}
 
 _IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _REL_PREFIX_RE = re.compile(r"^(?:\./|\.\./)+")
@@ -41,11 +36,8 @@ def _disk_path(path: str, repo_root: Path | str | None) -> Path:
 def freshness_for_file(
     conn: sqlite3.Connection, path: str, repo_root: Path | str | None = None
 ) -> str:
-    """Freshness of one indexed file: fresh | edited_uncommitted | stale_index.
-
-    fresh = stored sha matches the bytes on disk; edited_uncommitted = sha
-    differs (disk mtime newer); stale_index = missing from disk or index.
-    """
+    # how fresh is one file. fresh = sha matches disk;
+    # edited = changed but not reindexed; stale = gone or unknown.
     row = conn.execute(
         "SELECT sha256, mtime FROM files WHERE path = ?;", (path,)
     ).fetchone()
@@ -53,19 +45,19 @@ def freshness_for_file(
     try:
         st = disk.stat()
     except OSError:
-        return STALE
+        return stale
     if row is None:
-        return STALE
+        return stale
     stored_sha, stored_mtime = row
     try:
         data = disk.read_bytes()
     except OSError:
-        return STALE
+        return stale
     if hashlib.sha256(data).hexdigest() == stored_sha:
-        return FRESH
+        return fresh
     if st.st_mtime >= stored_mtime:
-        return EDITED
-    return STALE
+        return edited
+    return stale
 
 
 def _scan_counts(conn: sqlite3.Connection, extra: dict | None = None) -> dict:
@@ -79,7 +71,7 @@ def _scan_counts(conn: sqlite3.Connection, extra: dict | None = None) -> dict:
 
 
 def _worst(freshnesses) -> str:
-    worst = FRESH
+    worst = fresh
     for f in freshnesses:
         if _SEVERITY.get(f, 0) > _SEVERITY[worst]:
             worst = f
@@ -96,7 +88,7 @@ def _meta(conn: sqlite3.Connection, freshness: str, scan_counts: dict | None = N
 def _repo_freshness(conn: sqlite3.Connection, repo_root: Path | str | None) -> str:
     paths = [r[0] for r in conn.execute("SELECT path FROM files;")]
     if not paths:
-        return FRESH
+        return fresh
     return _worst(freshness_for_file(conn, p, repo_root) for p in paths)
 
 
@@ -128,11 +120,8 @@ def _degrees(conn: sqlite3.Connection) -> dict[int, int]:
 def search_symbols(
     conn: sqlite3.Connection, q: str, repo_root: Path | str | None = None
 ) -> dict:
-    """Ranked substring search (stdlib only, no BM25 dep).
-
-    exact qualname match > qualname substring > sig/doc substring;
-    ties broken by symbol degree (edges touching the symbol).
-    """
+    # substring search. exact name first, then name contains,
+    # then sig/doc contains. ties go to the best-connected symbol.
     counts = _scan_counts(conn)
     results: list[dict] = []
     if q:
@@ -166,7 +155,7 @@ def search_symbols(
 def get_symbol(
     conn: sqlite3.Connection, symbol_id: int, repo_root: Path | str | None = None
 ) -> dict:
-    """Full symbol row + byte-exact source slice read from disk."""
+    # full symbol row + the exact source slice from disk.
     counts = _scan_counts(conn)
     row = conn.execute(
         f"SELECT {_SYMBOL_COLS} FROM symbols WHERE id = ?;", (symbol_id,)
@@ -176,7 +165,7 @@ def get_symbol(
             "symbol": None,
             "source": None,
             "error": "not_found",
-            "_meta": _meta(conn, STALE, counts),
+            "_meta": _meta(conn, stale, counts),
         }
     sym = _symbol_row(row)
     freshness = freshness_for_file(conn, sym["path"], repo_root)
@@ -187,7 +176,7 @@ def get_symbol(
             "symbol": sym,
             "source": None,
             "error": "file_missing",
-            "_meta": _meta(conn, STALE, counts),
+            "_meta": _meta(conn, stale, counts),
         }
     sb, eb = sym["start_byte"], sym["end_byte"]
     if not (0 <= sb <= eb <= len(data)):
@@ -211,7 +200,7 @@ def get_symbol(
 def get_outline(
     conn: sqlite3.Connection, path: str | None = None, repo_root: Path | str | None = None
 ) -> dict:
-    """Repo outline (file -> names/kinds/sigs) or single-file outline. No bodies."""
+    # outline of one file or the whole repo. names only, no bodies.
     counts = _scan_counts(conn)
     keys: list[str]
     if path is not None:
@@ -233,14 +222,14 @@ def get_outline(
                     "files": {},
                     "freshness_by_file": {},
                     "error": "not_found",
-                    "_meta": _meta(conn, STALE, counts),
+                    "_meta": _meta(conn, stale, counts),
                 }
             continue
         files[key] = [
             {"qualname": qn, "kind": kind, "sig": sig or ""} for qn, kind, sig in rows
         ]
         freshness_by_file[key] = freshness_for_file(conn, key, repo_root)
-    freshness = _worst(freshness_by_file.values()) if freshness_by_file else FRESH
+    freshness = _worst(freshness_by_file.values()) if freshness_by_file else fresh
     return {
         "files": files,
         "freshness_by_file": freshness_by_file,
@@ -255,10 +244,8 @@ def get_outline(
 def check_refs(
     conn: sqlite3.Connection, identifier: str, repo_root: Path | str | None = None
 ) -> dict:
-    """Combine import specs + raw text scan + symbol hits into is_referenced.
-
-    Absence always carries scan_counts (never hallucinate negatives).
-    """
+    # is this name used anywhere? checks imports, symbols, raw text.
+    # no hits still returns scan counts, so 'unused' is proven.
     counts = _scan_counts(conn)
     evidence: list[dict] = []
     if identifier:
@@ -311,7 +298,7 @@ def add_edge(
     kind: str = "calls",
     confidence: str = "INFERRED",
 ) -> int:
-    """Minimal additive edges-table insert helper (db.py exposes none)."""
+    # small helper to add one edge. db.py has none.
     cur = conn.execute(
         "INSERT INTO edges (src_id, dst_id, kind, confidence) VALUES (?, ?, ?, ?);",
         (src_id, dst_id, kind, confidence),
@@ -323,12 +310,9 @@ def add_edge(
 def infer_call_edges(
     conn: sqlite3.Connection, repo_root: Path | str | None = None
 ) -> dict:
-    """Pass-2: symbol bodies mentioning another symbol's short name.
-
-    Rebuilds all ``kind='calls'`` / ``confidence='INFERRED'`` edges
-    (idempotent: previous INFERRED calls edges are cleared first).
-    EXTRACTED edges, if any, are left untouched.
-    """
+    # second pass: if a symbol body mentions another symbol's short name,
+    # link them as a call. rebuilds guessed edges from scratch;
+    # extracted ones are left alone.
     counts = _scan_counts(conn)
     syms = conn.execute(
         "SELECT id, path, qualname, start_byte, end_byte FROM symbols;"
@@ -350,9 +334,8 @@ def infer_call_edges(
         data = cache[sym_path]
         if not data or not (0 <= sb <= eb <= len(data)):
             continue
-        # A symbol's "own" code excludes nested symbols' spans (e.g. a
-        # class body minus its methods); otherwise a method's calls would
-        # also be attributed to every enclosing symbol.
+        # only the symbol's own lines count, not nested symbols inside it.
+        # (else a method's calls would also land on its class).
         inner = sorted(
             (osb, oeb)
             for oid, opath, osb, oeb in spans
@@ -398,7 +381,7 @@ def _walk_calls(
     counts = _scan_counts(
         conn, {"edges_scanned": conn.execute("SELECT COUNT(*) FROM edges;").fetchone()[0]}
     )
-    depth = max(0, min(depth, MAX_DEPTH))
+    depth = max(0, min(depth, max_depth))
     start_ids = [
         r[0]
         for r in conn.execute("SELECT id FROM symbols WHERE qualname = ?;", (qualname,))
@@ -451,7 +434,7 @@ def callers(
     depth: int = 1,
     repo_root: Path | str | None = None,
 ) -> dict:
-    """Transitive reverse walk over 'calls' edges. Cycle-safe, capped at depth 3."""
+    # walk 'calls' edges backwards. safe on cycles, max depth 3.
     return _walk_calls(conn, qualname, depth, "callers", repo_root)
 
 
@@ -461,7 +444,7 @@ def callees(
     depth: int = 1,
     repo_root: Path | str | None = None,
 ) -> dict:
-    """Transitive forward walk over 'calls' edges. Cycle-safe, capped at depth 3."""
+    # walk 'calls' edges forwards. safe on cycles, max depth 3.
     return _walk_calls(conn, qualname, depth, "callees", repo_root)
 
 
@@ -469,7 +452,7 @@ def callees(
 
 
 def _spec_hits_file(spec: str, path: str) -> bool:
-    """True when import *spec* plausibly refers to indexed file *path*."""
+    # does this import string point at this file? best guess.
     cand = _REL_PREFIX_RE.sub("", spec.strip()).rstrip("/")
     if not cand:
         return False
@@ -481,11 +464,9 @@ def _spec_hits_file(spec: str, path: str) -> bool:
 def blast_radius(
     conn: sqlite3.Connection, target: str, repo_root: Path | str | None = None
 ) -> dict:
-    """Direct reverse edges + reverse imports for a symbol or a file.
-
-    confirmed = EXTRACTED reverse calls + files importing the file;
-    potential = INFERRED reverse calls.
-    """
+    # what would this break? reverse calls + reverse imports.
+    # confirmed = real calls and real imports;
+    # potential = guessed calls.
     counts = _scan_counts(
         conn, {"edges_scanned": conn.execute("SELECT COUNT(*) FROM edges;").fetchone()[0]}
     )

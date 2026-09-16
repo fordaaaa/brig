@@ -1,4 +1,4 @@
-"""Phase 1a: db core tests — open/create, schema, sidecar. TDD: written before db.py."""
+# Phase 1a: db core tests — open/create, schema, sidecar. TDD: written before db.py.
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def test_sidecar_meta_written(root: Path):
         meta_path = root / "index" / "myrepo.meta"
         assert meta_path.exists()
         data = json.loads(meta_path.read_text(encoding="utf-8"))
-        assert data["schema_version"] == db.SCHEMA_VERSION
+        assert data["schema_version"] == db.schema_version
         assert data["file_count"] == 0
         assert "last_indexed" in data
     finally:

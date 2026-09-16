@@ -1,8 +1,5 @@
-"""SQLite WAL index storage + incremental index pipeline.
-
-See SPEC.md (Architecture: Storage, Incremental) and PLAN.md Phase 1a.
-stdlib ``sqlite3`` only, no ORM.
-"""
+# sqlite storage + incremental indexing.
+# stdlib sqlite3 only.
 
 from __future__ import annotations
 
@@ -15,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Sequence
 
-SCHEMA_VERSION = 1
+schema_version = 1
 
 _BUILTIN_IGNORE_DIRS = frozenset({".git", ".venv", "node_modules", "__pycache__"})
 
@@ -54,7 +51,7 @@ CREATE TABLE IF NOT EXISTS edges (
 );
 """
 
-# extract_fn(path, source) -> (symbols, imports); see parse.extract stub.
+# extract_fn(path, source) gives (symbols, imports).
 ExtractFn = Callable[[Path, bytes], tuple[Sequence[Mapping], Iterable]]
 
 
@@ -80,26 +77,19 @@ def meta_path(slug: str, root: Path | str | None = None) -> Path:
 
 
 def norm_path(path: Path | str) -> str:
-    """Lexical normalization to forward slashes.
-
-    Backslashes become separators first so Windows-style paths normalize
-    identically on every OS (POSIX Path keeps backslashes literally, which
-    is why as_posix alone is not enough). No resolving — pure string shape.
-    """
+    # forward slashes everywhere. backslash counts as a separator too,
+    # so windows paths match. just string shaping, no resolving.
     return str(path).replace("\\", "/")
 
 
 def default_slug_for_repo(repo_root: Path | str) -> str:
-    """Slug default: resolved directory name (so ``.`` yields e.g. ``brig``)."""
+    # default slug is the folder name.
     return Path(repo_root).resolve().name or "index"
 
 
 def is_valid_slug(slug: str) -> bool:
-    """True if slug is safe to use as an index filename stem.
-
-    Leading-dot slugs are rejected: they are hidden files on disk and the
-    only known producers are past slug bugs (``""`` -> ``.db``).
-    """
+    # slugs become filenames, so keep them plain.
+    # (an old bug once made a file literally named '.db').
     return (
         bool(slug)
         and slug not in (".", "..")
@@ -121,13 +111,13 @@ def open_or_create(slug: str, root: Path | str | None = None) -> sqlite3.Connect
     if row is None:
         conn.execute(
             "INSERT INTO schema_meta (key, value) VALUES ('schema_version', ?);",
-            (str(SCHEMA_VERSION),),
+            (str(schema_version),),
         )
         conn.commit()
-    elif row[0] != str(SCHEMA_VERSION):
+    elif row[0] != str(schema_version):
         conn.close()
         raise RuntimeError(
-            f"schema version mismatch for {slug!r}: have {row[0]}, want {SCHEMA_VERSION}"
+            f"schema version mismatch for {slug!r}: have {row[0]}, want {schema_version}"
         )
     return conn
 
@@ -135,7 +125,7 @@ def open_or_create(slug: str, root: Path | str | None = None) -> sqlite3.Connect
 def write_meta(conn: sqlite3.Connection, slug: str, root: Path | str | None = None) -> dict:
     file_count = conn.execute("SELECT COUNT(*) FROM files;").fetchone()[0]
     data = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": schema_version,
         "file_count": file_count,
         "last_indexed": datetime.now(timezone.utc).isoformat(),
     }
@@ -166,7 +156,7 @@ def index_file(
     mtime: float | None = None,
     size: int | None = None,
 ) -> None:
-    """Upsert one file: delete stale symbols/imports for path, insert new ones."""
+    # save one file: wipe its old rows, insert the new ones.
     key = norm_path(path)
     old_ids = [r[0] for r in conn.execute("SELECT id FROM symbols WHERE path = ?;", (key,))]
     if old_ids:
@@ -231,11 +221,8 @@ def _storage_key(path: Path | str, repo_root: Path | str | None) -> tuple[Path, 
 def needs_reindex(
     conn: sqlite3.Connection, path: Path | str, repo_root: Path | str | None = None
 ) -> bool:
-    """True if the file needs (re)indexing.
-
-    mtime+size fast-path; sha256 fallback when the stat differs.
-    Unknown files always need indexing.
-    """
+    # true if the file changed. fast path is mtime+size,
+    # falls back to sha256. new files always count.
     fspath, key = _storage_key(path, repo_root)
     try:
         st = fspath.stat()
@@ -280,7 +267,7 @@ def _load_gitignore_patterns(repo: Path) -> list[str]:
 
 
 def _pattern_matches(pattern: str, rel: str, is_dir: bool) -> bool:
-    """Positive-form match only; callers handle '!' negation."""
+    # ignores the '!' rules here; the caller flips those.
     pat = pattern.strip("/")
     is_dir_pat = pattern.endswith("/")
     name = rel.rsplit("/", 1)[-1]
@@ -301,7 +288,7 @@ def _is_ignored(rel: str, patterns: Sequence[str], is_dir: bool) -> bool:
     ignored = False
     for pattern in patterns:
         if pattern.startswith("!"):
-            # Negation: un-ignore when the positive form matches.
+            # a '!rule' un-ignores.
             if _pattern_matches(pattern[1:], rel, is_dir):
                 ignored = False
         elif _pattern_matches(pattern, rel, is_dir):
@@ -317,10 +304,10 @@ def index_repo(
     index_root: Path | str | None = None,
     extract_fn: ExtractFn | None = None,
 ) -> dict:
-    """Walk repo, index changed files, drop deleted ones. Returns stats dict."""
+    # walk the repo, index what changed, drop what got deleted.
     repo = Path(repo_root)
     if extract_fn is None:
-        from brig.parse import extract as extract_fn  # lazy: parse must stay core-free
+        from brig.parse import extract as extract_fn  # lazy import, parse must stay light
 
     own_conn = conn is None
     if own_conn:

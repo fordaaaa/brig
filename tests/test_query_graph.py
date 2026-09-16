@@ -1,8 +1,6 @@
-"""Phase 2: query graph tests — INFERRED call edges, callers/callees, blast_radius.
-
-TDD: written before src/brig/query.py. Uses the same synthetic repo
-shape as tests/test_query.py (duplicated builder: keep files independent).
-"""
+# Phase 2: query graph tests — INFERRED call edges, callers/callees, blast_radius.
+# TDD: written before src/brig/query.py. Uses the same synthetic repo
+# shape as tests/test_query.py (duplicated builder: keep files independent).
 
 from __future__ import annotations
 
@@ -12,7 +10,7 @@ import pytest
 
 from brig import db, query
 
-HELPERS_PY = '''"""Helper utilities."""
+helpers_py = '''"""Helper utilities."""
 
 def helper(name):
     """Greet by name."""
@@ -27,7 +25,7 @@ class Worker:
         return helper(name)
 '''
 
-MAIN_PY = '''import helpers
+main_py = '''import helpers
 from helpers import helper
 
 
@@ -46,7 +44,7 @@ def lonely():
     return 0
 '''
 
-APP_TS = '''import { formatName } from "./lib";
+app_ts = '''import { formatName } from "./lib";
 
 export function greet(name: string): string {
   return formatName(name);
@@ -57,7 +55,7 @@ export function unusedTs(): number {
 }
 '''
 
-LIB_TS = '''/** Format a name. */
+lib_ts = '''/** Format a name. */
 export function formatName(name: string): string {
   return name.trim();
 }
@@ -68,10 +66,10 @@ export function formatName(name: string): string {
 def qrepo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
-    (repo / "helpers.py").write_text(HELPERS_PY, encoding="utf-8")
-    (repo / "main.py").write_text(MAIN_PY, encoding="utf-8")
-    (repo / "app.ts").write_text(APP_TS, encoding="utf-8")
-    (repo / "lib.ts").write_text(LIB_TS, encoding="utf-8")
+    (repo / "helpers.py").write_text(helpers_py, encoding="utf-8")
+    (repo / "main.py").write_text(main_py, encoding="utf-8")
+    (repo / "app.ts").write_text(app_ts, encoding="utf-8")
+    (repo / "lib.ts").write_text(lib_ts, encoding="utf-8")
     return repo
 
 

@@ -1,8 +1,6 @@
-"""Regression tests for plans/fix-dot-path-slug.md.
-
-`brig index .` must default to the resolved directory name, not an empty slug.
-TDD: written before the fix in src/brig/cli.py + src/brig/db.py.
-"""
+# Regression tests for plans/fix-dot-path-slug.md.
+# `brig index .` must default to the resolved directory name, not an empty slug.
+# TDD: written before the fix in src/brig/cli.py + src/brig/db.py.
 
 from __future__ import annotations
 
