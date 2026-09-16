@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#182030"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="16" fill="url(#bg)"/>
+  <rect x="1.5" y="1.5" width="1197" height="297" rx="15" fill="none" stroke="#30363d" stroke-width="2"/>
+  <circle cx="64" cy="56" r="9" fill="#f85149"/>
+  <circle cx="94" cy="56" r="9" fill="#d29922"/>
+  <circle cx="124" cy="56" r="9" fill="#3fb950"/>
+  <text x="60" y="182" font-size="100" font-weight="700" fill="#f0f6fc" letter-spacing="4">brig</text>
+  <text x="62" y="230" font-size="29" fill="#8b949e">index once &#183; retrieve exactly</text>
+  <g font-size="25">
+    <rect x="770" y="52" width="370" height="56" rx="28" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <circle cx="806" cy="80" r="8" fill="#3fb950"/>
+    <text x="824" y="89" fill="#e6edf3">tree-sitter parse</text>
+    <rect x="770" y="122" width="370" height="56" rx="28" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <circle cx="806" cy="150" r="8" fill="#58a6ff"/>
+    <text x="824" y="159" fill="#e6edf3">SQLite index</text>
+    <rect x="770" y="192" width="370" height="56" rx="28" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <circle cx="806" cy="220" r="8" fill="#d2a8ff"/>
+    <text x="824" y="229" fill="#e6edf3">7 MCP tools</text>
+  </g>
+</svg>

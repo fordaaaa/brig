@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <defs>
+    <linearGradient id="sbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#182030"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#sbg)"/>
+  <circle cx="90" cy="80" r="11" fill="#f85149"/>
+  <circle cx="126" cy="80" r="11" fill="#d29922"/>
+  <circle cx="162" cy="80" r="11" fill="#3fb950"/>
+  <text x="640" y="320" font-size="180" font-weight="700" fill="#f0f6fc" text-anchor="middle" letter-spacing="6">brig</text>
+  <text x="640" y="392" font-size="42" fill="#8b949e" text-anchor="middle">index once &#183; retrieve exactly</text>
+  <g font-size="30">
+    <rect x="211" y="440" width="280" height="64" rx="32" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="351" y="482" fill="#e6edf3" text-anchor="middle">tree-sitter</text>
+    <rect x="515" y="440" width="250" height="64" rx="32" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="640" y="482" fill="#e6edf3" text-anchor="middle">SQLite WAL</text>
+    <rect x="789" y="440" width="280" height="64" rx="32" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="929" y="482" fill="#e6edf3" text-anchor="middle">7 MCP tools</text>
+  </g>
+  <text x="640" y="576" font-size="26" fill="#6e7681" text-anchor="middle">deterministic code-graph index &#183; no embeddings &#183; no telemetry &#183; MIT</text>
+</svg>

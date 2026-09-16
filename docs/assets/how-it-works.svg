@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <defs>
+    <linearGradient id="hbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#182030"/>
+    </linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#58a6ff"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="400" rx="16" fill="url(#hbg)"/>
+  <rect x="1.5" y="1.5" width="1197" height="397" rx="15" fill="none" stroke="#30363d" stroke-width="2"/>
+  <g>
+    <rect x="30" y="50" width="255" height="300" rx="14" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+    <circle cx="66" cy="96" r="17" fill="#3fb950"/>
+    <text x="66" y="104" font-size="22" font-weight="700" fill="#0d1117" text-anchor="middle">1</text>
+    <text x="94" y="105" font-size="30" font-weight="700" fill="#f0f6fc">WALK</text>
+    <text x="52" y="160" font-size="20" fill="#e6edf3">walk the checkout</text>
+    <text x="52" y="196" font-size="20" fill="#8b949e">.gitignore respected</text>
+    <text x="52" y="232" font-size="20" fill="#8b949e">deleted files dropped</text>
+    <text x="52" y="300" font-size="19" fill="#3fb950">src/brig/db.py</text>
+  </g>
+  <g>
+    <rect x="325" y="50" width="255" height="300" rx="14" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+    <circle cx="361" cy="96" r="17" fill="#58a6ff"/>
+    <text x="361" y="104" font-size="22" font-weight="700" fill="#0d1117" text-anchor="middle">2</text>
+    <text x="389" y="105" font-size="30" font-weight="700" fill="#f0f6fc">PARSE</text>
+    <text x="347" y="160" font-size="20" fill="#e6edf3">suffix &#8594; LanguageSpec</text>
+    <text x="347" y="196" font-size="20" fill="#8b949e">symbols + byte spans</text>
+    <text x="347" y="232" font-size="20" fill="#8b949e">7 languages</text>
+    <text x="347" y="300" font-size="19" fill="#58a6ff">src/brig/langs/</text>
+  </g>
+  <g>
+    <rect x="620" y="50" width="255" height="300" rx="14" fill="#161b22" stroke="#d2a8ff" stroke-width="2"/>
+    <circle cx="656" cy="96" r="17" fill="#d2a8ff"/>
+    <text x="656" y="104" font-size="22" font-weight="700" fill="#0d1117" text-anchor="middle">3</text>
+    <text x="684" y="105" font-size="30" font-weight="700" fill="#f0f6fc">STORE</text>
+    <text x="642" y="160" font-size="20" fill="#e6edf3">single SQLite file</text>
+    <text x="642" y="196" font-size="20" fill="#8b949e">upsert files+symbols</text>
+    <text x="642" y="232" font-size="20" fill="#8b949e">INFERRED call edges</text>
+    <text x="642" y="300" font-size="19" fill="#d2a8ff">~/.brig/index/*.db</text>
+  </g>
+  <g>
+    <rect x="915" y="50" width="255" height="300" rx="14" fill="#161b22" stroke="#d29922" stroke-width="2"/>
+    <circle cx="951" cy="96" r="17" fill="#d29922"/>
+    <text x="951" y="104" font-size="22" font-weight="700" fill="#0d1117" text-anchor="middle">4</text>
+    <text x="979" y="105" font-size="28" font-weight="700" fill="#f0f6fc">FETCH</text>
+    <text x="937" y="160" font-size="20" fill="#e6edf3">search &#8594; symbol</text>
+    <text x="937" y="196" font-size="20" fill="#8b949e">callers / blast</text>
+    <text x="937" y="232" font-size="20" fill="#8b949e">exact spans + _meta</text>
+    <text x="937" y="300" font-size="19" fill="#d29922">CLI · MCP · HTTP</text>
+  </g>
+  <line x1="292" y1="200" x2="316" y2="200" stroke="#58a6ff" stroke-width="3" marker-end="url(#arr)"/>
+  <line x1="587" y1="200" x2="611" y2="200" stroke="#58a6ff" stroke-width="3" marker-end="url(#arr)"/>
+  <line x1="882" y1="200" x2="906" y2="200" stroke="#58a6ff" stroke-width="3" marker-end="url(#arr)"/>
+</svg>

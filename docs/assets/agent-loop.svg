@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <defs>
+    <linearGradient id="abg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#182030"/>
+    </linearGradient>
+    <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#3fb950"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="380" rx="16" fill="url(#abg)"/>
+  <rect x="1.5" y="1.5" width="1197" height="377" rx="15" fill="none" stroke="#30363d" stroke-width="2"/>
+  <g>
+    <rect x="30" y="30" width="360" height="200" rx="14" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="56" y="76" font-size="24" font-weight="700" fill="#3fb950">1 · SEARCH</text>
+    <text x="56" y="124" font-size="25" fill="#f0f6fc">$ brig search greet</text>
+    <text x="56" y="168" font-size="20" fill="#8b949e">find the symbol id</text>
+    <text x="56" y="200" font-size="20" fill="#8b949e">never open whole files</text>
+  </g>
+  <g>
+    <rect x="420" y="30" width="360" height="200" rx="14" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="446" y="76" font-size="24" font-weight="700" fill="#58a6ff">2 · FETCH</text>
+    <text x="446" y="124" font-size="25" fill="#f0f6fc">$ brig symbol 1</text>
+    <text x="446" y="168" font-size="20" fill="#8b949e">exact 57-byte span</text>
+    <text x="446" y="200" font-size="20" fill="#8b949e">sig + doc + source</text>
+  </g>
+  <g>
+    <rect x="810" y="30" width="360" height="200" rx="14" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+    <text x="836" y="76" font-size="24" font-weight="700" fill="#d2a8ff">3 · CHECK</text>
+    <text x="836" y="124" font-size="25" fill="#f0f6fc">$ brig blast greet</text>
+    <text x="836" y="168" font-size="20" fill="#8b949e">who breaks if I edit?</text>
+    <text x="836" y="200" font-size="20" fill="#8b949e">confirmed vs potential</text>
+  </g>
+  <line x1="396" y1="130" x2="412" y2="130" stroke="#3fb950" stroke-width="3" marker-end="url(#arr2)"/>
+  <line x1="786" y1="130" x2="802" y2="130" stroke="#3fb950" stroke-width="3" marker-end="url(#arr2)"/>
+  <rect x="30" y="250" width="1140" height="100" rx="14" fill="#0f2c1e" stroke="#3fb950" stroke-width="2"/>
+  <text x="60" y="293" font-size="24" fill="#e6edf3">~90 tokens in, the whole file stays out</text>
+  <text x="60" y="327" font-size="20" fill="#7ee787">every answer carries freshness + scan counts</text>
+</svg>
