@@ -66,14 +66,14 @@ Same 7 tools over stdio (`index`, `search_symbols`, `get_symbol`, `get_outline`,
 
 Codex (`~/.codex/config.toml`): same thing as `[mcp_servers.brig]` with `command` + `args`. Details: `configs/README.md`.
 
-## HTTP + Docker
+## HTTP (local)
 
 ```sh
 brig serve --port 8000
 curl "http://127.0.0.1:8000/api/v1/search?slug=myrepo&q=norm_path"
 ```
 
-Nine `GET` endpoints under `/api/v1` (`live`, `slugs`, `search`, `outline`, `symbol`, `refs`, `callers`, `callees`, `blast`) — same answers as the CLI, loopback by default. Docker: `docker compose -f deploy/docker-compose.yml up -d --build`, index via `exec brig brig index /repos/<name> --slug <name>` (Traefik labels target a homelab gateway — adjust if that's not you).
+Nine `GET` endpoints under `/api/v1` (`live`, `slugs`, `search`, `outline`, `symbol`, `refs`, `callers`, `callees`, `blast`) — same answers as the CLI, loopback by default. Routes: `src/brig/serve.py`.
 
 ## Dev
 
