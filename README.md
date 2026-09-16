@@ -1,6 +1,6 @@
 # brig
 
-Deterministic code-graph index for one repo: tree-sitter parses Python, JavaScript, and TypeScript into symbols in one SQLite WAL file, queryable through a CLI and 7 MCP tools.
+Deterministic code-graph index for one repo: tree-sitter parses Python, JavaScript, TypeScript, C, C++, C#, and Java into symbols in one SQLite WAL file, queryable through a CLI and 7 MCP tools.
 
 ## Why
 

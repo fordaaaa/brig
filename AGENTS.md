@@ -40,7 +40,7 @@ Storage: one SQLite WAL file per repo. No embeddings, no graph DB, no telemetry.
 
 - `src/brig/db.py` — SQLite WAL storage, incremental upserts.
 - `src/brig/parse.py` — tree-sitter parse pipeline.
-- `src/brig/langs/` — LanguageSpec registry (python/js/ts first).
+- `src/brig/langs/` — LanguageSpec registry (python/js/ts + c/cpp/csharp/java).
 - `src/brig/query.py` — search/outline/refs/callers/blast + `_meta` envelope.
 - `src/brig/cli.py` — argparse CLI mirror.
 - `src/brig/mcp.py` — stdio MCP server (7 tools, hard cap).

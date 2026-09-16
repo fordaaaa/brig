@@ -20,7 +20,7 @@ repo -> tree-sitter parse -> symbols/edges -> SQLite WAL (one file per repo) -> 
 
 - **Storage:** `~/.brig/index/{slug}.db` (WAL) + `raw/` file cache. Sidecar `.meta` for listing without opening DBs. Tables: `symbols(id, path, qualname, kind, sig, doc, hash, start_byte, end_byte)`, `files(path, hash, mtime)`, `imports(src, dst, spec)`, `edges(src, dst, kind, confidence)`.
 - **Incremental:** SHA-256 + mtime fast-path per file; reindex only changed files.
-- **Languages (v1):** Python, TS/JS/TSX, Go, Rust. Registry pattern (`LanguageSpec` per lang) so more are additive, not core changes. Regex import fallback.
+- **Languages (v1):** Python, JS/JSX, TS/TSX, C (`.c`/`.h`), C++ (`.cpp`/`.hpp`/`.cc`/`.cxx`), C# (`.cs`), Java (`.java`). Registry pattern (`LanguageSpec` per lang) so more are additive, not core changes. Regex import fallback.
 - **Graph:** edges derived at query time from stored symbols + AST pass-2 call resolution. `god_nodes` = degree rank; cycles = DFS. No Leiden, no clustering deps.
 - **Every response carries `_meta`:** `{freshness: fresh|edited_uncommitted|stale_index, confidence: 0-1, scan_counts}`. Absence requires scan counts — never hallucinate negatives.
 
