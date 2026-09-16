@@ -30,11 +30,19 @@ class LanguageSpec(Protocol):
 def _specs() -> dict[str, LanguageSpec]:
     # Imported lazily so spec modules (which import brig.parse) never
     # create an import cycle at package import time.
+    from brig.langs.c import CSpec
+    from brig.langs.cpp import CppSpec
+    from brig.langs.csharp import CSharpSpec
+    from brig.langs.java import JavaSpec
     from brig.langs.javascript import JavaScriptSpec
     from brig.langs.python import PythonSpec
     from brig.langs.typescript import TypeScriptSpec
 
     return {
+        "c": CSpec(),
+        "cpp": CppSpec(),
+        "csharp": CSharpSpec(),
+        "java": JavaSpec(),
         "python": PythonSpec(),
         "javascript": JavaScriptSpec(),
         "typescript": TypeScriptSpec(),
