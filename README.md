@@ -58,13 +58,29 @@ Same index, three doors: CLI (`brig search …`), 7 MCP tools over stdio, read-o
 
 ## MCP setup
 
-Same 7 tools over stdio (`index`, `search_symbols`, `get_symbol`, `get_outline`, `callers_callees`, `blast_radius`, `check_refs`). Put this in your client config with the **absolute** checkout path, then restart it:
+From a Brig checkout, one command indexes a repo and wires up both clients:
+
+```sh
+uv run brig setup /path/to/your-repo
+# indexes it, adds [mcp_servers.brig] to ~/.codex/config.toml,
+# writes .mcp.json in the repo for Claude Code. then restart the client.
+```
+
+Flags: `--no-codex` / `--no-claude` to wire one side, `--dry-run` to preview,
+`--slug` / `--root` like `index`, and `--codex-home` to override the Codex
+home directory. Setup preserves unrelated entries and is safe to rerun when the
+existing Brig entry matches. It refuses malformed or stale client configuration
+instead of overwriting it. The generated `.mcp.json` contains an absolute local
+checkout path, so keep it out of public commits unless the repository explicitly
+shares that configuration.
+
+Manual fallback (same 7 tools over stdio — `index`, `search_symbols`, `get_symbol`, `get_outline`, `callers_callees`, `blast_radius`, `check_refs`):
 
 ```json
 {"mcpServers": {"brig": {"command": "uv", "args": ["run", "--directory", "/abs/path/to/brig", "python", "-m", "brig.mcp"]}}}
 ```
 
-Codex (`~/.codex/config.toml`): same thing as `[mcp_servers.brig]` with `command` + `args`. Details: `configs/README.md`.
+Details: `configs/README.md`.
 
 ## HTTP (local)
 
@@ -81,6 +97,6 @@ Nine `GET` endpoints under `/api/v1` (`live`, `slugs`, `search`, `outline`, `sym
 uv sync && uv run pytest   # green every change
 ```
 
-TDD, conventional commits (`feat:` `fix:` …), small diffs. `uv.lock` is committed; `*.db` and `.local/` are gitignored. Won't do: embeddings, graph DBs, per-IDE installers, telemetry.
+TDD, conventional commits (`feat:` `fix:` …), small diffs. `uv.lock` is committed; `*.db` and `.local/` are gitignored. Won't do: embeddings, graph DBs, separate per-IDE installer packages, telemetry.
 
 Skills/plans: `skills/`, `plans/` · MIT — see `LICENSE`.
