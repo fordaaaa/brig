@@ -34,6 +34,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_index.add_argument("--root", default=None, help="Brig store root; defaults to ~/.brig.")
     p_index.add_argument("--slug", default=None, help="Slug (defaults to the repo dir name).")
 
+    p_setup = sub.add_parser("setup", help="Index a repo and wire up Codex/Claude Code.")
+    p_setup.add_argument("path", nargs="?", default=".", help="Repo dir (default: here).")
+    p_setup.add_argument("--root", default=None, help="Brig store root; defaults to ~/.brig.")
+    p_setup.add_argument("--slug", default=None, help="Slug (defaults to the repo dir name).")
+    p_setup.add_argument("--no-codex", action="store_true", help="Skip Codex wiring.")
+    p_setup.add_argument("--no-claude", action="store_true", help="Skip Claude Code wiring.")
+    p_setup.add_argument("--dry-run", action="store_true", help="Print what would happen, change nothing.")
+    p_setup.add_argument("--codex-home", default=None, help="Codex home dir (default: $CODEX_HOME or ~/.codex).")
+
     p_search = sub.add_parser("search", help="Search symbols.")
     p_search.add_argument("query", help="Search query.")
     _add_store_args(p_search)
@@ -162,18 +171,10 @@ def _stash_repo_root(slug: str, base: Path, repo: Path) -> None:
         pass
 
 
-def _cmd_index(args: argparse.Namespace) -> int:
+def _do_index(repo: Path, base: Path, slug: str) -> dict:
     from brig import db, query
 
-    repo = Path(args.path)
-    if not repo.is_dir():
-        return _fail(f"not a directory: {args.path}")
-    base = _store_base(args.root)
-    slug = args.slug or db.default_slug_for_repo(repo)
-    try:
-        stats = db.index_repo(repo, slug=slug, index_root=base, extract_fn=_safe_extract)
-    except Exception as exc:
-        return _fail(f"index failed: {exc}")
+    stats = db.index_repo(repo, slug=slug, index_root=base, extract_fn=_safe_extract)
     _stash_repo_root(slug, base, repo)
     # best-effort call edges so callers/blast work too.
     try:
@@ -184,6 +185,21 @@ def _cmd_index(args: argparse.Namespace) -> int:
             conn.close()
     except Exception:
         pass
+    return stats
+
+
+def _cmd_index(args: argparse.Namespace) -> int:
+    from brig import db
+
+    repo = Path(args.path)
+    if not repo.is_dir():
+        return _fail(f"not a directory: {args.path}")
+    base = _store_base(args.root)
+    slug = args.slug or db.default_slug_for_repo(repo)
+    try:
+        stats = _do_index(repo, base, slug)
+    except Exception as exc:
+        return _fail(f"index failed: {exc}")
     return _emit({"indexed": stats["indexed"], "skipped": stats["skipped"], "removed": stats["removed"], "slug": slug})
 
 
@@ -321,6 +337,74 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_setup(args: argparse.Namespace) -> int:
+    from brig import db
+    from brig import setup as setup_mod
+
+    repo = Path(args.path)
+    if not repo.is_dir():
+        return _fail(f"not a directory: {args.path}")
+    base = _store_base(args.root)
+    slug = args.slug or db.default_slug_for_repo(repo)
+    if not db.is_valid_slug(slug):
+        return _fail(f"invalid slug {slug!r}; pass a plain name via --slug.")
+    checkout = setup_mod.brig_checkout()
+    if not (checkout / "pyproject.toml").is_file():
+        return _fail("cannot find the brig checkout; run setup from the brig repo.")
+    codex_path = setup_mod.codex_config_path(args.codex_home)
+    claude_path = repo.resolve() / ".mcp.json"
+    try:
+        codex_preview = (
+            "skipped" if args.no_codex else setup_mod.wire_codex(codex_path, checkout, dry_run=True)
+        )
+        claude_preview = (
+            "skipped" if args.no_claude else setup_mod.wire_claude(claude_path, checkout, dry_run=True)
+        )
+    except Exception as exc:
+        return _fail(f"setup preflight failed: {exc}")
+    if args.dry_run:
+        return _emit(
+            {
+                "indexed": 0,
+                "skipped": 0,
+                "removed": 0,
+                "slug": slug,
+                "checkout": str(checkout),
+                "codex": codex_preview,
+                "codex_config": str(codex_path),
+                "claude": claude_preview,
+                "claude_config": str(claude_path),
+                "dry_run": True,
+            }
+        )
+    try:
+        stats = _do_index(repo, base, slug)
+    except Exception as exc:
+        return _fail(f"index failed: {exc}")
+    try:
+        codex = "skipped"
+        claude = "skipped"
+        if not args.no_codex:
+            codex = setup_mod.wire_codex(codex_path, checkout)
+        if not args.no_claude:
+            claude = setup_mod.wire_claude(claude_path, checkout)
+    except Exception as exc:
+        return _fail(
+            f"setup wiring failed after indexing (codex={codex}, claude={claude}): {exc}"
+        )
+    return _emit(
+        {
+            "indexed": stats["indexed"],
+            "skipped": stats["skipped"],
+            "removed": stats["removed"],
+            "slug": slug,
+            "checkout": str(checkout),
+            "codex": codex,
+            "claude": claude,
+        }
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -335,6 +419,7 @@ def main(argv: list[str] | None = None) -> int:
         "blast": _cmd_blast,
         "list": _cmd_list,
         "serve": _cmd_serve,
+        "setup": _cmd_setup,
     }
     handler = dispatch.get(args.command)
     if handler is None:
